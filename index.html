@@ -1613,6 +1613,53 @@
             if (savedGames) {
                 games = JSON.parse(savedGames);
                 nextGameId = Math.max(...games.map(g => g.id)) + 1;
+            } else {
+                // Restore default games for kimner team
+                if (currentTeamCode === 'kimner') {
+                    games = [
+                        {
+                            id: 1,
+                            opponent: 'Quandt',
+                            date: '2025-09-28',
+                            innings: 6,
+                            availablePlayers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                            ourScore: '',
+                            opponentScore: ''
+                        },
+                        {
+                            id: 2,
+                            opponent: 'Lightning Strikes',
+                            date: '2025-10-05',
+                            innings: 6,
+                            availablePlayers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                            ourScore: '',
+                            opponentScore: ''
+                        },
+                        {
+                            id: 3,
+                            opponent: 'Thunder Bolts',
+                            date: '2025-10-12',
+                            innings: 6,
+                            availablePlayers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                            ourScore: '',
+                            opponentScore: ''
+                        },
+                        {
+                            id: 4,
+                            opponent: 'Eagles',
+                            date: '2025-10-19',
+                            innings: 6,
+                            availablePlayers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                            ourScore: '',
+                            opponentScore: ''
+                        }
+                    ];
+                    nextGameId = 5;
+                    saveGames();
+                } else {
+                    games = [];
+                    nextGameId = 1;
+                }
             }
         }
         
