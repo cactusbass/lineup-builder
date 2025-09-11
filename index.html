@@ -2143,49 +2143,38 @@
                 defensiveLineupHTML = `
                     <div class="defensive-lineup">
                         <h3>Defensive Positions</h3>
-                        ${game.generatedLineup.innings.map((inning, index) => `
-                            <div class="inning" style="margin-bottom: 20px; page-break-inside: avoid;">
-                                <h4 style="margin-bottom: 10px; color: #0C2340;">Inning ${index + 1}</h4>
-                                <div class="lineup-section">
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">P</span>
-                                        <span class="player-name" style="flex: 1;">${inning.P || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">C</span>
-                                        <span class="player-name" style="flex: 1;">${inning.C || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">1B</span>
-                                        <span class="player-name" style="flex: 1;">${inning['1B'] || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">2B</span>
-                                        <span class="player-name" style="flex: 1;">${inning['2B'] || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">SS</span>
-                                        <span class="player-name" style="flex: 1;">${inning.SS || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">3B</span>
-                                        <span class="player-name" style="flex: 1;">${inning['3B'] || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">LF</span>
-                                        <span class="player-name" style="flex: 1;">${inning.LF || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">CF</span>
-                                        <span class="player-name" style="flex: 1;">${inning.CF || 'TBD'}</span>
-                                    </div>
-                                    <div class="position-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span class="position" style="font-weight: bold; width: 50px;">RF</span>
-                                        <span class="player-name" style="flex: 1;">${inning.RF || 'TBD'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
+                        <table class="defensive-table">
+                            <thead>
+                                <tr>
+                                    <th>Inning</th>
+                                    <th>P</th>
+                                    <th>C</th>
+                                    <th>1B</th>
+                                    <th>2B</th>
+                                    <th>SS</th>
+                                    <th>3B</th>
+                                    <th>LF</th>
+                                    <th>CF</th>
+                                    <th>RF</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${game.generatedLineup.innings.map((inning, index) => `
+                                    <tr>
+                                        <td class="inning-num">${index + 1}</td>
+                                        <td>${inning.P || 'TBD'}</td>
+                                        <td>${inning.C || 'TBD'}</td>
+                                        <td>${inning['1B'] || 'TBD'}</td>
+                                        <td>${inning['2B'] || 'TBD'}</td>
+                                        <td>${inning.SS || 'TBD'}</td>
+                                        <td>${inning['3B'] || 'TBD'}</td>
+                                        <td>${inning.LF || 'TBD'}</td>
+                                        <td>${inning.CF || 'TBD'}</td>
+                                        <td>${inning.RF || 'TBD'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 `;
             } else {
@@ -2203,19 +2192,24 @@
                 <head>
                     <title>Lineup Card - vs ${game.opponent}</title>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .lineup-card { border: 2px solid #000; padding: 20px; margin-bottom: 20px; }
-                        .header { text-align: center; margin-bottom: 20px; }
-                        .batting-order { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-                        .batting-slot { border: 1px solid #000; padding: 10px; text-align: center; }
-                        .slot-number { font-weight: bold; }
-                        .defensive-lineup { margin-top: 20px; }
-                        .position-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-                        .position { font-weight: bold; width: 50px; }
-                        .player-name { flex: 1; }
+                        body { font-family: Arial, sans-serif; margin: 10px; font-size: 12px; }
+                        .lineup-card { border: 2px solid #000; padding: 15px; }
+                        .header { text-align: center; margin-bottom: 15px; }
+                        .header h1 { margin: 0; font-size: 18px; }
+                        .header h2 { margin: 5px 0; font-size: 16px; }
+                        .header p { margin: 5px 0; font-size: 12px; }
+                        .batting-order { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
+                        .batting-slot { border: 1px solid #000; padding: 5px; text-align: center; }
+                        .slot-number { font-weight: bold; font-size: 10px; }
+                        .defensive-lineup { margin-top: 10px; }
+                        .defensive-lineup h3 { margin: 0 0 8px 0; font-size: 14px; }
+                        .defensive-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+                        .defensive-table th, .defensive-table td { border: 1px solid #000; padding: 2px; text-align: center; }
+                        .defensive-table th { background-color: #f0f0f0; font-weight: bold; }
+                        .inning-num { font-weight: bold; }
                         @media print {
-                            .lineup-card { page-break-inside: avoid; }
-                            .inning { page-break-inside: avoid; }
+                            body { margin: 5px; }
+                            .lineup-card { padding: 10px; }
                         }
                     </style>
                 </head>
@@ -2227,10 +2221,10 @@
                             <p><strong>Date:</strong> ${new Date(game.date).toLocaleDateString()}</p>
                         </div>
                         
-                        <div class="batting-order" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                        <div class="batting-order">
                             ${battingOrderNames.map((name, index) => `
-                                <div class="batting-slot" style="border: 1px solid #000; padding: 10px; text-align: center;">
-                                    <div class="slot-number" style="font-weight: bold;">${index + 1}</div>
+                                <div class="batting-slot">
+                                    <div class="slot-number">${index + 1}</div>
                                     <div>${name || 'TBD'}</div>
                                 </div>
                             `).join('')}
