@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lineup Builder - AA Fall Ball Coach</title>
@@ -556,8 +556,8 @@
             }
         }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
         <header>
             <h1>⚾ Lineup Builder</h1>
@@ -2498,6 +2498,9 @@
             // Update save button text
             updateSaveButtonText();
             
+            // Refresh the schedule view to show updated information
+            renderGames();
+            
             alert('Game updated successfully!');
         }
         
@@ -2509,10 +2512,12 @@
                 // Ask for confirmation if there are unsaved changes
                 if (confirm('You have unsaved changes. Are you sure you want to go back? Your changes will be lost.')) {
                     showSection('schedule');
+                    renderGames(); // Refresh the schedule view
                 }
             } else {
                 // No changes, just go back to schedule
                 showSection('schedule');
+                renderGames(); // Refresh the schedule view
             }
         }
         
@@ -2686,5 +2691,5 @@
             updateDashboardStats(); // Update dashboard statistics
         });
     </script>
-</body>
+  </body>
 </html>
