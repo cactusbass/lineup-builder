@@ -562,9 +562,6 @@
         <header>
             <h1>⚾ Lineup Builder</h1>
             <p class="subtitle">AA Fall Ball Coach Admin App</p>
-            <div style="margin-top: 10px;">
-                <button class="btn btn-sm btn-secondary" onclick="switchTeam()">Switch Team</button>
-            </div>
         </header>
         
         <nav class="nav">
@@ -984,26 +981,6 @@
             return `lineupBuilder_${currentTeamCode}_${baseKey}`;
         }
         
-        function switchTeam() {
-            const newTeamCode = prompt('Enter team code to switch to:');
-            if (newTeamCode && newTeamCode.trim()) {
-                const cleanTeamCode = newTeamCode.trim().toLowerCase().replace(/\s+/g, '');
-                currentTeamCode = cleanTeamCode;
-                localStorage.setItem('lineupBuilder_teamCode', currentTeamCode);
-                
-                // Reload data for new team
-                loadPlayers();
-                loadGames();
-                updatePageTitle();
-                
-                // Refresh the UI
-                renderPlayers();
-                renderGames();
-                updateDashboardStats();
-                
-                alert(`Switched to team: ${cleanTeamCode}`);
-            }
-        }
         
         // Team management
         let currentTeamCode = null;
