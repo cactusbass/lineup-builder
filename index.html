@@ -1065,7 +1065,7 @@
             }
         ];
         
-        // Load players from localStorage or use defaults
+        // Load players from localStorage or start with empty roster
         function loadPlayers() {
             const savedPlayers = localStorage.getItem(getStorageKey('players'));
             if (savedPlayers) {
@@ -1073,8 +1073,9 @@
                 // Update nextPlayerId to be higher than any existing player ID
                 nextPlayerId = Math.max(...players.map(p => p.id)) + 1;
             } else {
-                players = [...defaultPlayers];
-                savePlayers();
+                // Start with empty roster for new teams
+                players = [];
+                nextPlayerId = 1;
             }
         }
         
