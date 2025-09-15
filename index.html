@@ -1084,21 +1084,23 @@
             });
             
             players.forEach(player => {
+                if (!seasonStats.playerStats[player.id]) {
+                    seasonStats.playerStats[player.id] = {
+                        totalInnings: 0,
+                        benchInnings: 0,
+                        infieldInnings: 0,
+                        outfieldInnings: 0,
+                        pitchingInnings: 0,
+                        catchingInnings: 0,
+                        gamesPlayed: 0
+                    };
+                }
+                
                 if (!playersInGame.has(player.id)) {
-                    if (!seasonStats.playerStats[player.id]) {
-                        seasonStats.playerStats[player.id] = {
-                            totalInnings: 0,
-                            benchInnings: 0,
-                            infieldInnings: 0,
-                            outfieldInnings: 0,
-                            pitchingInnings: 0,
-                            catchingInnings: 0,
-                            gamesPlayed: 0
-                        };
-                    }
+                    // Player was benched for this entire game
                     seasonStats.playerStats[player.id].benchInnings += gameLineup.length;
                 } else {
-                    // Player participated in this game
+                    // Player participated in this game (increment gamesPlayed by 1 per game)
                     seasonStats.playerStats[player.id].gamesPlayed++;
                 }
             });
