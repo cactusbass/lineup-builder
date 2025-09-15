@@ -942,8 +942,9 @@
                 <p>Track cumulative playing time and identify imbalances across all games.</p>
                 
                 <div style="margin-bottom: 20px;">
-                    <button class="btn" onclick="runFastQATest()" style="background: #059669; color: white; margin-right: 10px;">🧪 Fast QA Test</button>
-                    <button class="btn btn-secondary" onclick="clearSeasonStats()" style="background: #dc2626; color: white;">🗑️ Clear Season Stats</button>
+                    <button class="btn" onclick="runFastQATest()" style="background: #059669; color: white; margin-right: 10px;">🧪 Fast QA Test</button>                                                               
+                    <button class="btn" onclick="rebuildSeasonStats()" style="background: #2563eb; color: white; margin-right: 10px;">🔄 Rebuild from Saved Lineups</button>                                                               
+                    <button class="btn btn-secondary" onclick="clearSeasonStats()" style="background: #dc2626; color: white;">🗑️ Clear Season Stats</button>                                                             
                 </div>
                 
                 <div id="seasonStatsContent">
@@ -1437,7 +1438,7 @@
         
         // Clear season stats function
         function clearSeasonStats() {
-            if (confirm('Are you sure you want to clear all season statistics? This will reset all cumulative player data.')) {
+            if (confirm('Are you sure you want to clear all season statistics? This will reset all cumulative player data.')) {                                                                                         
                 seasonStats = {
                     playerStats: {},
                     lastUpdated: null
@@ -1445,6 +1446,37 @@
                 saveSeasonStats();
                 renderSeasonStats();
                 alert('Season statistics cleared!');
+            }
+        }
+        
+        // Rebuild season stats from all existing saved lineups
+        function rebuildSeasonStats() {
+            console.log('Rebuilding season stats from existing lineups...');
+            
+            // Clear existing stats
+            seasonStats = {
+                playerStats: {},
+                lastUpdated: null
+            };
+            
+            // Process each game that has a saved lineup
+            let gamesProcessed = 0;
+            games.forEach(game => {
+                if (game.generatedLineup && game.generatedLineup.length > 0) {
+                    console.log(`Processing lineup for game vs ${game.opponent}`);
+                    updateSeasonStats(game.generatedLineup);
+                    gamesProcessed++;
+                }
+            });
+            
+            console.log(`Processed ${gamesProcessed} games with saved lineups`);
+            saveSeasonStats();
+            renderSeasonStats();
+            
+            if (gamesProcessed > 0) {
+                alert(`✅ Rebuilt season stats from ${gamesProcessed} saved lineups!`);
+            } else {
+                alert('No saved lineups found to rebuild stats from.');
             }
         }
         
