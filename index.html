@@ -1289,10 +1289,20 @@
                 const benchImbalanced = Math.abs(benchInnings - avgBench) > 1;
                 const infieldImbalanced = Math.abs(infieldInnings - avgInfield) > 1;
                 const outfieldImbalanced = Math.abs(outfieldInnings - avgOutfield) > 1;
-                const pitchingImbalanced = Math.abs(pitchingInnings - avgPitching) > 1;
-                const catchingImbalanced = Math.abs(catchingInnings - avgCatching) > 1;
+                
+                // Check if player can pitch or catch
+                const canPitch = player.availablePositions.includes('P');
+                const canCatch = player.availablePositions.includes('C');
+                
+                // Only check pitching/catching imbalances if player can play those positions
+                const pitchingImbalanced = canPitch && Math.abs(pitchingInnings - avgPitching) > 1;
+                const catchingImbalanced = canCatch && Math.abs(catchingInnings - avgCatching) > 1;
                 
                 const getCellStyle = (isImbalanced) => isImbalanced ? 'background: #fef2f2; color: #dc2626; font-weight: bold;' : '';
+                
+                // Format pitching and catching display
+                const pitchingDisplay = canPitch ? pitchingInnings : 'N/A';
+                const catchingDisplay = canCatch ? catchingInnings : 'N/A';
                 
                 html += `
                     <tr>
@@ -1302,8 +1312,8 @@
                         <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(benchImbalanced)}">${benchInnings}</td>
                         <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(infieldImbalanced)}">${infieldInnings}</td>
                         <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(outfieldImbalanced)}">${outfieldInnings}</td>
-                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(pitchingImbalanced)}">${pitchingInnings}</td>
-                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(catchingImbalanced)}">${catchingInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(pitchingImbalanced)}">${pitchingDisplay}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(catchingImbalanced)}">${catchingDisplay}</td>
                     </tr>
                 `;
             });
