@@ -680,8 +680,14 @@
                 <p>Click on any game to manage lineups, batting order, and player availability.</p>
                 
                 <!-- Add New Game Button -->
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <button class="btn btn-success" onclick="showAddGameForm()" id="showAddGameBtn">+ Add New Game</button>                                                                                             
+                </div>
+                
+                <!-- Generate Future Lineups Button -->
                 <div style="margin-bottom: 30px; text-align: center;">
-                    <button class="btn btn-success" onclick="showAddGameForm()" id="showAddGameBtn">+ Add New Game</button>
+                    <button class="btn" onclick="generateFutureLineups()" style="background: #7c3aed; color: white; border: 2px solid #7c3aed; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">🔮 Generate Future Lineups</button>
+                    <p style="margin-top: 8px; color: #6b7280; font-size: 0.9rem;">Generate lineups for all games that haven't occurred yet</p>
                 </div>
                 
                 <!-- Add New Game Form (Hidden by default) -->
@@ -3190,6 +3196,85 @@
                     lineupDisplay.innerHTML = '<p style="color: #6b7280;">Click "Generate Defensive Lineup" to create position rotations for this game.</p>';
                 }
             }
+        }
+        
+        // Generate lineups for all future games
+        function generateFutureLineups() {
+            console.log('=== GENERATING FUTURE LINEUPS ===');
+            
+            // Check if we have players
+            if (players.length === 0) {
+                alert('Please add your team roster first before generating lineups. Go to the Players tab to add players.');
+                return;
+            }
+            
+            // Check if we have games
+            if (games.length === 0) {
+                alert('Please add games to your schedule first.');
+                return;
+            }
+            
+            // Get current date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+            
+            // Find future games (games without lineups and dates in the future)
+            const futureGames = games.filter(game => {
+                const gameDate = new Date(game.date);
+                gameDate.setHours(0, 0, 0, 0);
+                return !game.generatedLineup && gameDate >= today;
+            });
+            
+            console.log('Found future games:', futureGames.length);
+            
+            if (futureGames.length === 0) {
+                alert('No future games found that need lineups. All upcoming games already have lineups generated.');
+                return;
+            }
+            
+            // Show confirmation
+            const gameList = futureGames.map(g => `• vs ${g.opponent} (${new Date(g.date).toLocaleDateString()})`).join('\n');
+            if (!confirm(`Generate lineups for ${futureGames.length} future games?\n\n${gameList}\n\nThis will create defensive lineups for all these games.`)) {
+                return;
+            }
+            
+            // Generate lineups for each future game
+            let successCount = 0;
+            let errorCount = 0;
+            const results = [];
+            
+            futureGames.forEach(game => {
+                try {
+                    console.log(`Generating lineup for game vs ${game.opponent}`);
+                    
+                    // Temporarily set currentGameDetail for lineup generation
+                    const originalGameDetail = currentGameDetail;
+                    currentGameDetail = game;
+                    
+                    // Generate lineup for this game
+                    generateLineupForGame(game.id);
+                    
+                    // Restore original game detail
+                    currentGameDetail = originalGameDetail;
+                    
+                    successCount++;
+                    results.push(`✅ vs ${game.opponent} - Lineup generated`);
+                    
+                } catch (error) {
+                    console.error(`Error generating lineup for game vs ${game.opponent}:`, error);
+                    errorCount++;
+                    results.push(`❌ vs ${game.opponent} - Error: ${error.message}`);
+                }
+            });
+            
+            // Show results
+            const resultMessage = `Future Lineup Generation Complete!\n\n✅ Success: ${successCount} games\n❌ Errors: ${errorCount} games\n\n${results.join('\n')}`;
+            alert(resultMessage);
+            
+            // Refresh the games display
+            renderGames();
+            
+            console.log('=== FUTURE LINEUP GENERATION COMPLETE ===');
         }
         
         function renderGameInfo() {
