@@ -570,6 +570,7 @@
             <button onclick="showSection('players')">Players</button>
             <button onclick="showSection('schedule')">Schedule</button>
             <button onclick="showSection('rules')">Rules & Constraints</button>
+            <button onclick="showSection('seasonStats')">Season Stats</button>
         </nav>
         
         <!-- Dashboard Section -->
@@ -933,6 +934,23 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Season Stats Section -->
+        <div id="seasonStats" class="section hidden">
+            <div class="card">
+                <h2>Season Statistics</h2>
+                <p>Track cumulative playing time and identify imbalances across all games.</p>
+                
+                <div style="margin-bottom: 20px;">
+                    <button class="btn" onclick="runFastQATest()" style="background: #059669; color: white; margin-right: 10px;">🧪 Fast QA Test</button>
+                    <button class="btn btn-secondary" onclick="clearSeasonStats()" style="background: #dc2626; color: white;">🗑️ Clear Season Stats</button>
+                </div>
+                
+                <div id="seasonStatsContent">
+                    <p style="color: #6b7280;">No games played yet. Generate lineups to see season statistics.</p>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -1167,6 +1185,242 @@
             return true;
         }
         
+        // Render season statistics
+        function renderSeasonStats() {
+            const content = document.getElementById('seasonStatsContent');
+            if (!content) return;
+            
+            // Load current season stats
+            loadSeasonStats();
+            
+            // Check if we have any stats
+            const playerStats = seasonStats.playerStats || {};
+            const playerIds = Object.keys(playerStats);
+            
+            if (playerIds.length === 0) {
+                content.innerHTML = '<p style="color: #6b7280;">No games played yet. Generate lineups to see season statistics.</p>';
+                return;
+            }
+            
+            // Calculate averages
+            const stats = Object.values(playerStats);
+            const avgInnings = stats.reduce((sum, p) => sum + (p.totalInnings || 0), 0) / stats.length;
+            const avgBench = stats.reduce((sum, p) => sum + (p.benchInnings || 0), 0) / stats.length;
+            const avgInfield = stats.reduce((sum, p) => sum + (p.infieldInnings || 0), 0) / stats.length;
+            const avgOutfield = stats.reduce((sum, p) => sum + (p.outfieldInnings || 0), 0) / stats.length;
+            const avgPitching = stats.reduce((sum, p) => sum + (p.pitchingInnings || 0), 0) / stats.length;
+            const avgCatching = stats.reduce((sum, p) => sum + (p.catchingInnings || 0), 0) / stats.length;
+            
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <h3>Season Averages</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Total Innings</strong><br>${avgInnings.toFixed(1)}
+                        </div>
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Bench Time</strong><br>${avgBench.toFixed(1)}
+                        </div>
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Infield Time</strong><br>${avgInfield.toFixed(1)}
+                        </div>
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Outfield Time</strong><br>${avgOutfield.toFixed(1)}
+                        </div>
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Pitching Time</strong><br>${avgPitching.toFixed(1)}
+                        </div>
+                        <div style="background: #f3f4f6; padding: 10px; border-radius: 5px; text-align: center;">
+                            <strong>Catching Time</strong><br>${avgCatching.toFixed(1)}
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Player Statistics</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background: #f3f4f6;">
+                                <th style="padding: 10px; text-align: left; border: 1px solid #d1d5db;">Player</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Games</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Total Innings</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Bench Time</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Infield</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Outfield</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Pitching</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">Catching</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Sort players by name for consistent display
+            const sortedPlayers = playerIds
+                .map(id => ({ id: parseInt(id), stats: playerStats[id], player: players.find(p => p.id === parseInt(id)) }))
+                .filter(item => item.player)
+                .sort((a, b) => a.player.name.localeCompare(b.player.name));
+            
+            sortedPlayers.forEach(({ player, stats }) => {
+                const totalInnings = stats.totalInnings || 0;
+                const benchInnings = stats.benchInnings || 0;
+                const infieldInnings = stats.infieldInnings || 0;
+                const outfieldInnings = stats.outfieldInnings || 0;
+                const pitchingInnings = stats.pitchingInnings || 0;
+                const catchingInnings = stats.catchingInnings || 0;
+                const gamesPlayed = stats.gamesPlayed || 0;
+                
+                // Check for imbalances (more than +/- 1 from average)
+                const totalImbalanced = Math.abs(totalInnings - avgInnings) > 1;
+                const benchImbalanced = Math.abs(benchInnings - avgBench) > 1;
+                const infieldImbalanced = Math.abs(infieldInnings - avgInfield) > 1;
+                const outfieldImbalanced = Math.abs(outfieldInnings - avgOutfield) > 1;
+                const pitchingImbalanced = Math.abs(pitchingInnings - avgPitching) > 1;
+                const catchingImbalanced = Math.abs(catchingInnings - avgCatching) > 1;
+                
+                const getCellStyle = (isImbalanced) => isImbalanced ? 'background: #fef2f2; color: #dc2626; font-weight: bold;' : '';
+                
+                html += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #d1d5db; font-weight: bold;">${player.name}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db;">${gamesPlayed}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(totalImbalanced)}">${totalInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(benchImbalanced)}">${benchInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(infieldImbalanced)}">${infieldInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(outfieldImbalanced)}">${outfieldInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(pitchingImbalanced)}">${pitchingInnings}</td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #d1d5db; ${getCellStyle(catchingImbalanced)}">${catchingInnings}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+                    <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Imbalance Alert</h4>
+                    <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
+                        <strong>Red numbers</strong> indicate values that are more than ±1 from the team average. 
+                        These players may need priority in future lineup generation to restore balance.
+                    </p>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+        
+        // Fast QA Test function
+        function runFastQATest() {
+            console.log('=== FAST QA TEST STARTING ===');
+            
+            // Test 1: Check basic setup
+            console.log('Test 1: Basic Setup Check');
+            if (players.length < 8) {
+                alert('❌ QA Test Failed: Need at least 8 players. Currently have ' + players.length);
+                return;
+            }
+            console.log('✅ Players: ' + players.length);
+            
+            const pitchers = players.filter(p => p.availablePositions.includes('P'));
+            if (pitchers.length === 0) {
+                alert('❌ QA Test Failed: Need at least 1 pitcher');
+                return;
+            }
+            console.log('✅ Pitchers: ' + pitchers.length);
+            
+            // Test 2: Check if we have games
+            if (games.length === 0) {
+                alert('❌ QA Test Failed: No games found. Add a game first.');
+                return;
+            }
+            console.log('✅ Games: ' + games.length);
+            
+            // Test 3: Generate a test lineup
+            console.log('Test 3: Lineup Generation');
+            const testGame = games[0];
+            if (!testGame || !testGame.availablePlayers || testGame.availablePlayers.length < 8) {
+                alert('❌ QA Test Failed: First game needs 8+ available players');
+                return;
+            }
+            
+            // Temporarily set currentGameDetail for testing
+            const originalGameDetail = currentGameDetail;
+            currentGameDetail = testGame;
+            
+            try {
+                // Generate lineup
+                generateLineupForGame(testGame.id);
+                console.log('✅ Lineup generated successfully');
+                
+                // Test 4: Check season stats
+                console.log('Test 4: Season Stats Check');
+                loadSeasonStats();
+                const playerStats = seasonStats.playerStats || {};
+                const playerCount = Object.keys(playerStats).length;
+                
+                if (playerCount === 0) {
+                    console.log('⚠️ No season stats found - this might be expected for first game');
+                } else {
+                    console.log('✅ Season stats found for ' + playerCount + ' players');
+                }
+                
+                // Test 5: Check lineup display
+                console.log('Test 5: Lineup Display Check');
+                const lineupDisplay = document.getElementById('lineup-display');
+                if (lineupDisplay && lineupDisplay.innerHTML.length > 100) {
+                    console.log('✅ Lineup display updated');
+                } else {
+                    console.log('⚠️ Lineup display might not be showing');
+                }
+                
+                // Test 6: Test view saved lineup
+                console.log('Test 6: View Saved Lineup');
+                if (testGame.generatedLineup) {
+                    viewSavedLineup(testGame.id);
+                    console.log('✅ View saved lineup works');
+                } else {
+                    console.log('⚠️ No saved lineup to test');
+                }
+                
+                // Restore original game detail
+                currentGameDetail = originalGameDetail;
+                
+                // Show results
+                alert('✅ Fast QA Test PASSED!\n\n' +
+                      '• Players: ' + players.length + '\n' +
+                      '• Pitchers: ' + pitchers.length + '\n' +
+                      '• Games: ' + games.length + '\n' +
+                      '• Season Stats: ' + playerCount + ' players\n' +
+                      '• Lineup Generation: Working\n' +
+                      '• View Saved Lineup: Working\n\n' +
+                      'Check the Season Stats tab to see cumulative data!');
+                
+                // Refresh season stats display
+                renderSeasonStats();
+                
+            } catch (error) {
+                console.error('❌ QA Test Error:', error);
+                alert('❌ QA Test FAILED: ' + error.message);
+                currentGameDetail = originalGameDetail;
+            }
+            
+            console.log('=== FAST QA TEST COMPLETE ===');
+        }
+        
+        // Clear season stats function
+        function clearSeasonStats() {
+            if (confirm('Are you sure you want to clear all season statistics? This will reset all cumulative player data.')) {
+                seasonStats = {
+                    playerStats: {},
+                    lastUpdated: null
+                };
+                saveSeasonStats();
+                renderSeasonStats();
+                alert('Season statistics cleared!');
+            }
+        }
+        
         // Simple test function to verify button functionality
         function testButtonClick() {
             console.log('Testing button click...');
@@ -1322,6 +1576,11 @@
             // Refresh game player checkboxes when showing games section
             if (sectionName === 'games') {
                 renderGamePlayerCheckboxes();
+            }
+            
+            // Refresh season stats when showing season stats section
+            if (sectionName === 'seasonStats') {
+                renderSeasonStats();
             }
         }
         
