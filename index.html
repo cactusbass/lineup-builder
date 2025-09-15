@@ -2569,25 +2569,20 @@
             const originalLineup = lineup;
             lineup = game.generatedLineup.innings;
             
-            // Switch to lineup tab to show the saved lineup
-            showSection('lineup');
+            // Generate the lineup HTML using the same function
+            console.log('Generating lineup HTML for saved lineup...');
+            const lineupHTML = generateSmartLineup();
+            console.log('Generated lineup HTML:', lineupHTML);
             
-            // Add a note that this is a saved lineup
-            const lineupContainer = document.getElementById('lineup');
-            let noteElement = document.getElementById('savedLineupNote');
-            if (!noteElement) {
-                noteElement = document.createElement('div');
-                noteElement.id = 'savedLineupNote';
-                noteElement.style.cssText = 'background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;';
-                lineupContainer.insertBefore(noteElement, lineupContainer.firstChild);
+            // Update the lineup display in the current view
+            const lineupDisplay = document.getElementById('lineup-display');
+            console.log('Lineup display element:', lineupDisplay);
+            if (lineupDisplay) {
+                lineupDisplay.innerHTML = lineupHTML;
+                console.log('Updated lineup display with saved lineup');
+            } else {
+                console.log('Lineup display element not found!');
             }
-            
-            const generatedDate = new Date(game.generatedLineup.timestamp).toLocaleString();
-            noteElement.innerHTML = `
-                <strong>📋 Saved Lineup for vs ${game.opponent}</strong><br>
-                <small>Generated on: ${generatedDate}</small><br>
-                <button class="btn btn-sm" onclick="clearSavedLineupNote()" style="margin-top: 10px;">Close</button>
-            `;
             
             // Restore original lineup after a delay to allow viewing
             setTimeout(() => {
@@ -2894,7 +2889,11 @@
         }
         
         function viewSavedLineupForCurrentGame() {
-            if (!currentGameDetail) return;
+            console.log('viewSavedLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
+            if (!currentGameDetail) {
+                alert('No game selected. Please select a game first.');
+                return;
+            }
             viewSavedLineup(currentGameDetail.id);
         }
         
