@@ -687,7 +687,7 @@
                 <!-- Generate Future Lineups Button -->
                 <div style="margin-bottom: 30px; text-align: center;">
                     <button class="btn" onclick="generateFutureLineups()" style="background: #7c3aed; color: white; border: 2px solid #7c3aed; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">🔮 Generate Future Lineups</button>
-                    <p style="margin-top: 8px; color: #6b7280; font-size: 0.9rem;">Generate lineups for all games that haven't occurred yet</p>
+                    <p style="margin-top: 8px; color: #6b7280; font-size: 0.9rem;">Regenerate lineups for all future games based on current player capabilities</p>
                 </div>
                 
                 <!-- Add New Game Form (Hidden by default) -->
@@ -3218,23 +3218,27 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0); // Reset time to start of day
             
-            // Find future games (games without lineups and dates in the future)
+            // Find future games (all games with dates in the future, regardless of existing lineups)
             const futureGames = games.filter(game => {
                 const gameDate = new Date(game.date);
                 gameDate.setHours(0, 0, 0, 0);
-                return !game.generatedLineup && gameDate >= today;
+                return gameDate >= today;
             });
             
             console.log('Found future games:', futureGames.length);
             
             if (futureGames.length === 0) {
-                alert('No future games found that need lineups. All upcoming games already have lineups generated.');
+                alert('No future games found. Add games with future dates to your schedule first.');
                 return;
             }
             
             // Show confirmation
-            const gameList = futureGames.map(g => `• vs ${g.opponent} (${new Date(g.date).toLocaleDateString()})`).join('\n');
-            if (!confirm(`Generate lineups for ${futureGames.length} future games?\n\n${gameList}\n\nThis will create defensive lineups for all these games.`)) {
+            const gameList = futureGames.map(g => {
+                const hasLineup = g.generatedLineup ? ' (will regenerate)' : ' (new lineup)';
+                return `• vs ${g.opponent} (${new Date(g.date).toLocaleDateString()})${hasLineup}`;
+            }).join('\n');
+            
+            if (!confirm(`Regenerate lineups for ${futureGames.length} future games?\n\n${gameList}\n\nThis will update all future lineups based on current player capabilities and season balance.`)) {
                 return;
             }
             
