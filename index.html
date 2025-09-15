@@ -2655,6 +2655,12 @@
         
         // Add Game Form Functions
         function showAddGameForm() {
+            // Check if there are any players in the roster
+            if (players.length === 0) {
+                alert('Please add your team roster first before scheduling games. Go to the Players tab to add players.');
+                return;
+            }
+            
             document.getElementById('addGameForm').style.display = 'block';
             document.getElementById('showAddGameBtn').style.display = 'none';
             // Set today's date as default
