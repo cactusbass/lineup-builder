@@ -848,11 +848,11 @@
                     <div class="rule-category">
                         <h3>🎯 Core Principles</h3>
                         <ol>
-                            <li><strong>All positions must be filled</strong> - Every inning has all 9 positions filled (unless fewer than 9 players available)</li>
-                            <li><strong>No duplicate players per inning</strong> - Each player can only play one position per inning</li>
-                            <li><strong>Respect player availability</strong> - Only use players marked as available for the game</li>
-                            <li><strong>Respect position exclusions</strong> - Never put players in positions they've excluded</li>
-                            <li><strong>Randomized selection</strong> - Player list is shuffled to avoid bias in selection order</li>
+                            <li><strong>All positions must be filled</strong> - Every inning has all positions filled (8 players = 8 positions, 9+ players = 9 positions)</li>                                                    
+                            <li><strong>No duplicate players per inning</strong> - Each player can only play one position per inning</li>                                                                               
+                            <li><strong>Respect player availability</strong> - Only use players marked as available for the game</li>                                                                                   
+                            <li><strong>Respect position exclusions</strong> - Never put players in positions they've excluded</li>                                                                                     
+                            <li><strong>Randomized selection</strong> - Player list is shuffled to avoid bias in selection order</li>                                                                                   
                         </ol>
                     </div>
                     
@@ -891,11 +891,12 @@
                     <div class="rule-category">
                         <h3>🪑 Bench Management</h3>
                         <ol>
-                            <li><strong>Dynamic bench calculation</strong> - Bench time calculated based on number of available players</li>
-                            <li><strong>9 players = no bench</strong> - Perfect setup: 9 players, 9 positions, everyone plays all innings</li>
-                            <li><strong>10+ players = bench time</strong> - Balanced bench rotation with fair distribution</li>
-                            <li><strong>Fair bench distribution</strong> - No player sits 3 innings while others sit only 1</li>
-                            <li><strong>Catcher availability priority</strong> - Ensure at least one catcher is always available</li>
+                            <li><strong>Dynamic bench calculation</strong> - Bench time calculated based on number of available players</li>                                                                            
+                            <li><strong>8 players = no bench</strong> - Perfect setup: 8 players, 8 positions (P, C, 1B, 2B, SS, 3B, LF, RF)</li>                                                                          
+                            <li><strong>9 players = no bench</strong> - Perfect setup: 9 players, 9 positions, everyone plays all innings</li>                                                                          
+                            <li><strong>10+ players = bench time</strong> - Balanced bench rotation with fair distribution</li>                                                                                         
+                            <li><strong>Fair bench distribution</strong> - No player sits 3 innings while others sit only 1</li>                                                                                        
+                            <li><strong>Catcher availability priority</strong> - Ensure at least one catcher is always available</li>                                                                                   
                         </ol>
                     </div>
                     
@@ -905,7 +906,7 @@
                             <li><strong>Pitcher selection:</strong> New pitchers → Consecutive pitchers → Any designated pitcher → Any player</li>
                             <li><strong>Catcher selection:</strong> Designated catchers (non-consecutive) → Any player (non-consecutive)</li>
                             <li><strong>Infield positions (1B, 2B, SS, 3B):</strong> Players with least infield time → Players with least total time</li>
-                            <li><strong>Outfield positions (LF, CF, RF):</strong> Players who didn't play outfield last inning → Players with least outfield time</li>
+                            <li><strong>Outfield positions (LF, RF for 8 players; LF, CF, RF for 9+ players):</strong> Players who didn't play outfield last inning → Players with least outfield time</li>
                         </ol>
                     </div>
                     
@@ -1265,8 +1266,8 @@
         }
         
         function generateLineup() {
-            if (players.length < 9) {
-                alert('You need at least 9 players to generate a lineup');
+            if (players.length < 8) {
+                alert('You need at least 8 players to generate a lineup');
                 return;
             }
             
@@ -1292,9 +1293,6 @@
         
         function generateSmartLineup() {
             const innings = 6;
-            const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
-            const infieldPositions = ['1B', '2B', 'SS', '3B'];
-            const outfieldPositions = ['LF', 'CF', 'RF'];
             
             // Initialize the global lineup array
             lineup = [];
@@ -1306,7 +1304,24 @@
             // Shuffle the players array to randomize selection order
             const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
             const numPlayers = shuffledPlayers.length;
-            const playersPerInning = 9;
+            
+            // Determine positions based on number of players
+            let positions, infieldPositions, outfieldPositions, playersPerInning;
+            
+            if (numPlayers === 8) {
+                // 8 players: P, C, 1B, 2B, SS, 3B, LF, RF (no CF)
+                positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'RF'];
+                infieldPositions = ['1B', '2B', 'SS', '3B'];
+                outfieldPositions = ['LF', 'RF'];
+                playersPerInning = 8;
+            } else {
+                // 9+ players: standard 9 positions
+                positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
+                infieldPositions = ['1B', '2B', 'SS', '3B'];
+                outfieldPositions = ['LF', 'CF', 'RF'];
+                playersPerInning = 9;
+            }
+            
             const playersToBenchPerInning = numPlayers - playersPerInning;
             
             // Calculate targets
