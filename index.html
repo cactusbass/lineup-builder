@@ -983,6 +983,123 @@
             return `lineupBuilder_${currentTeamCode}_${baseKey}`;
         }
         
+        // Season stats management
+        function loadSeasonStats() {
+            const saved = localStorage.getItem(getStorageKey('seasonStats'));
+            if (saved) {
+                seasonStats = JSON.parse(saved);
+            }
+        }
+        
+        function saveSeasonStats() {
+            localStorage.setItem(getStorageKey('seasonStats'), JSON.stringify(seasonStats));
+        }
+        
+        function updateSeasonStats(gameLineup) {
+            // Update cumulative stats based on this game's lineup
+            gameLineup.forEach(inning => {
+                inning.positions.forEach(pos => {
+                    const playerId = pos.playerId;
+                    if (!seasonStats.playerStats[playerId]) {
+                        seasonStats.playerStats[playerId] = {
+                            totalInnings: 0,
+                            benchInnings: 0,
+                            infieldInnings: 0,
+                            outfieldInnings: 0,
+                            pitchingInnings: 0,
+                            catchingInnings: 0,
+                            gamesPlayed: 0
+                        };
+                    }
+                    
+                    const stats = seasonStats.playerStats[playerId];
+                    stats.totalInnings++;
+                    
+                    // Categorize position
+                    if (pos.position === 'P') {
+                        stats.pitchingInnings++;
+                        stats.infieldInnings++; // P counts as infield
+                    } else if (pos.position === 'C') {
+                        stats.catchingInnings++;
+                        stats.infieldInnings++; // C counts as infield
+                    } else if (['1B', '2B', 'SS', '3B'].includes(pos.position)) {
+                        stats.infieldInnings++;
+                    } else if (['LF', 'CF', 'RF'].includes(pos.position)) {
+                        stats.outfieldInnings++;
+                    }
+                });
+            });
+            
+            // Count bench time for players not in this game's lineup
+            const playersInGame = new Set();
+            gameLineup.forEach(inning => {
+                inning.positions.forEach(pos => {
+                    playersInGame.add(pos.playerId);
+                });
+            });
+            
+            players.forEach(player => {
+                if (!playersInGame.has(player.id)) {
+                    if (!seasonStats.playerStats[player.id]) {
+                        seasonStats.playerStats[player.id] = {
+                            totalInnings: 0,
+                            benchInnings: 0,
+                            infieldInnings: 0,
+                            outfieldInnings: 0,
+                            pitchingInnings: 0,
+                            catchingInnings: 0,
+                            gamesPlayed: 0
+                        };
+                    }
+                    seasonStats.playerStats[player.id].benchInnings += gameLineup.length;
+                } else {
+                    // Player participated in this game
+                    seasonStats.playerStats[player.id].gamesPlayed++;
+                }
+            });
+            
+            seasonStats.lastUpdated = new Date().toISOString();
+            saveSeasonStats();
+        }
+        
+        function getPlayerPriority(player, position, cumulativeTargetInfield, cumulativeTargetOutfield) {
+            // Calculate priority based on how far behind this player is in cumulative stats
+            const stats = seasonStats.playerStats[player.id] || {
+                totalInnings: 0,
+                benchInnings: 0,
+                infieldInnings: 0,
+                outfieldInnings: 0,
+                pitchingInnings: 0,
+                catchingInnings: 0,
+                gamesPlayed: 0
+            };
+            
+            let priority = 0;
+            
+            // Position-specific priority
+            if (position === 'P') {
+                // Prioritize players with fewer pitching innings
+                priority += (cumulativeTargetInfield - stats.pitchingInnings) * 10;
+            } else if (position === 'C') {
+                // Prioritize players with fewer catching innings
+                priority += (cumulativeTargetInfield - stats.catchingInnings) * 10;
+            } else if (['1B', '2B', 'SS', '3B'].includes(position)) {
+                // Prioritize players with fewer infield innings
+                priority += (cumulativeTargetInfield - stats.infieldInnings) * 5;
+            } else if (['LF', 'CF', 'RF'].includes(position)) {
+                // Prioritize players with fewer outfield innings
+                priority += (cumulativeTargetOutfield - stats.outfieldInnings) * 5;
+            }
+            
+            // Overall playing time priority
+            priority += (cumulativeTargetInfield + cumulativeTargetOutfield - stats.totalInnings) * 2;
+            
+            // Bench time priority (players who have been benched more should get priority)
+            priority += stats.benchInnings * 3;
+            
+            return priority;
+        }
+        
         function logout() {
             if (confirm('Are you sure you want to logout? This will clear your current team data from this browser and you will need to enter your team code again.')) {
                 localStorage.removeItem('lineupBuilder_teamCode');
@@ -1004,6 +1121,12 @@
         
         // Lineup data
         let lineup = [];
+        
+        // Season-long tracking for cumulative balance
+        let seasonStats = {
+            playerStats: {}, // playerId -> { totalInnings, benchInnings, infieldInnings, outfieldInnings, pitchingInnings, catchingInnings, gamesPlayed }
+            lastUpdated: null
+        };
         
         // Default player data
         const defaultPlayers = [
@@ -1324,12 +1447,17 @@
             
             const playersToBenchPerInning = numPlayers - playersPerInning;
             
-            // Calculate targets
+            // Calculate targets including season stats
             // P and C are now considered "infield" positions
-            const totalInfieldSlots = (infieldPositions.length + 2) * innings; // 36 infield slots (4 infield + 2 P/C)
+            const totalInfieldSlots = (infieldPositions.length + 2) * innings; // 36 infield slots (4 infield + 2 P/C)                                                                                                  
             const totalOutfieldSlots = outfieldPositions.length * innings; // 18 outfield slots
             const targetInfieldPerPlayer = Math.floor(totalInfieldSlots / numPlayers); // 4
             const targetOutfieldPerPlayer = Math.floor(totalOutfieldSlots / numPlayers); // 2
+            
+            // Calculate cumulative targets (including previous games)
+            const gamesPlayed = Math.max(1, Math.max(...shuffledPlayers.map(p => seasonStats.playerStats[p.id]?.gamesPlayed || 0)));
+            const cumulativeTargetInfield = targetInfieldPerPlayer * gamesPlayed;
+            const cumulativeTargetOutfield = targetOutfieldPerPlayer * gamesPlayed;
             
             console.log(`Target balance: ${targetInfieldPerPlayer} infield (including P/C), ${targetOutfieldPerPlayer} outfield per player`);
             console.log(`Players: ${numPlayers}, Bench per inning: ${playersToBenchPerInning}`);
@@ -2277,12 +2405,15 @@
                 return;
             }
             
+            // Load season stats for cumulative balancing
+            loadSeasonStats();
+            
             // Filter players to only those available for this game
             const availablePlayers = players.filter(p => game.availablePlayers.includes(p.id));
             console.log('Available players for game:', availablePlayers);
             
-            if (availablePlayers.length < 9) {
-                alert(`You need at least 9 players available for this game. Currently have ${availablePlayers.length} players.`);
+            if (availablePlayers.length < 8) {
+                alert(`You need at least 8 players available for this game. Currently have ${availablePlayers.length} players.`);                                                                                       
                 return;
             }
             
@@ -2309,6 +2440,9 @@
                 innings: [...lineup] // Copy the current lineup
             };
             console.log('Saved lineup to game:', game.generatedLineup);
+            
+            // Update season stats with this game's lineup
+            updateSeasonStats(lineup);
             
             // Save games to localStorage
             saveGames();
@@ -2708,6 +2842,7 @@
             
             loadPlayers(); // Load saved players from localStorage
             loadGames(); // Load saved games from localStorage
+            loadSeasonStats(); // Load season stats for cumulative balancing
             renderPlayers();
             renderGames();
             renderGamePlayerCheckboxes();
