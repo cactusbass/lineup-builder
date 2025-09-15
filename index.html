@@ -1024,12 +1024,23 @@
             
             // Update cumulative stats based on this game's lineup
             gameLineup.forEach(inning => {
-                if (!inning || !inning.positions || !Array.isArray(inning.positions)) {
+                if (!inning) {
                     console.log('Invalid inning data, skipping:', inning);
                     return;
                 }
-                inning.positions.forEach(pos => {
-                    const playerId = pos.playerId;
+                
+                // Handle the actual data structure: {P: 'playerName', C: 'playerName', ...}
+                Object.entries(inning).forEach(([position, playerName]) => {
+                    if (position === 'bench') return; // Skip bench data
+                    
+                    // Find player by name
+                    const player = players.find(p => p.name === playerName);
+                    if (!player) {
+                        console.log('Player not found:', playerName);
+                        return;
+                    }
+                    
+                    const playerId = player.id;
                     if (!seasonStats.playerStats[playerId]) {
                         seasonStats.playerStats[playerId] = {
                             totalInnings: 0,
@@ -1046,15 +1057,15 @@
                     stats.totalInnings++;
                     
                     // Categorize position
-                    if (pos.position === 'P') {
+                    if (position === 'P') {
                         stats.pitchingInnings++;
                         stats.infieldInnings++; // P counts as infield
-                    } else if (pos.position === 'C') {
+                    } else if (position === 'C') {
                         stats.catchingInnings++;
                         stats.infieldInnings++; // C counts as infield
-                    } else if (['1B', '2B', 'SS', '3B'].includes(pos.position)) {
+                    } else if (['1B', '2B', 'SS', '3B'].includes(position)) {
                         stats.infieldInnings++;
-                    } else if (['LF', 'CF', 'RF'].includes(pos.position)) {
+                    } else if (['LF', 'CF', 'RF'].includes(position)) {
                         stats.outfieldInnings++;
                     }
                 });
@@ -1063,8 +1074,12 @@
             // Count bench time for players not in this game's lineup
             const playersInGame = new Set();
             gameLineup.forEach(inning => {
-                inning.positions.forEach(pos => {
-                    playersInGame.add(pos.playerId);
+                Object.entries(inning).forEach(([position, playerName]) => {
+                    if (position === 'bench') return; // Skip bench data
+                    const player = players.find(p => p.name === playerName);
+                    if (player) {
+                        playersInGame.add(player.id);
+                    }
                 });
             });
             
