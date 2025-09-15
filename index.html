@@ -2800,8 +2800,9 @@
             console.log('Players array before generateSmartLineup:', players);
             console.log('Current game detail:', currentGameDetail);
             
+            let generatedLineup;
             try {
-                const generatedLineup = generateSmartLineup();
+                generatedLineup = generateSmartLineup();
                 console.log('Generated lineup HTML:', generatedLineup);
                 console.log('Global lineup array:', lineup);
                 
