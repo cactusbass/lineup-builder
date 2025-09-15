@@ -1287,18 +1287,20 @@
                 const gamesPlayed = stats.gamesPlayed || 0;
                 
                 // Check for imbalances (more than +/- 1.5 from average)
-                const totalImbalanced = Math.abs(totalInnings - avgInnings) > 1.5;
-                const benchImbalanced = Math.abs(benchInnings - avgBench) > 1.5;
-                const infieldImbalanced = Math.abs(infieldInnings - avgInfield) > 1.5;
-                const outfieldImbalanced = Math.abs(outfieldInnings - avgOutfield) > 1.5;
+                // Only flag as imbalanced if the player participated in games but got uneven playing time
+                // Don't flag players who missed games entirely (that's expected)
+                const totalImbalanced = gamesPlayed > 0 && Math.abs(totalInnings - avgInnings) > 1.5;
+                const benchImbalanced = gamesPlayed > 0 && Math.abs(benchInnings - avgBench) > 1.5;
+                const infieldImbalanced = gamesPlayed > 0 && Math.abs(infieldInnings - avgInfield) > 1.5;
+                const outfieldImbalanced = gamesPlayed > 0 && Math.abs(outfieldInnings - avgOutfield) > 1.5;
                 
                 // Check if player can pitch or catch
                 const canPitch = player.availablePositions.includes('P');
                 const canCatch = player.availablePositions.includes('C');
                 
-                // Only check pitching/catching imbalances if player can play those positions
-                const pitchingImbalanced = canPitch && Math.abs(pitchingInnings - avgPitching) > 1.5;
-                const catchingImbalanced = canCatch && Math.abs(catchingInnings - avgCatching) > 1.5;
+                // Only check pitching/catching imbalances if player can play those positions and participated in games
+                const pitchingImbalanced = canPitch && gamesPlayed > 0 && Math.abs(pitchingInnings - avgPitching) > 1.5;
+                const catchingImbalanced = canCatch && gamesPlayed > 0 && Math.abs(catchingInnings - avgCatching) > 1.5;
                 
                 const getCellStyle = (isImbalanced) => isImbalanced ? 'background: #fef2f2; color: #dc2626; font-weight: bold;' : '';
                 
