@@ -996,8 +996,20 @@
         }
         
         function updateSeasonStats(gameLineup) {
+            console.log('updateSeasonStats called with:', gameLineup);
+            
+            // Check if gameLineup is valid
+            if (!gameLineup || !Array.isArray(gameLineup)) {
+                console.log('Invalid gameLineup, skipping season stats update');
+                return;
+            }
+            
             // Update cumulative stats based on this game's lineup
             gameLineup.forEach(inning => {
+                if (!inning || !inning.positions || !Array.isArray(inning.positions)) {
+                    console.log('Invalid inning data, skipping:', inning);
+                    return;
+                }
                 inning.positions.forEach(pos => {
                     const playerId = pos.playerId;
                     if (!seasonStats.playerStats[playerId]) {
