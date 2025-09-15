@@ -562,6 +562,7 @@
         <header>
             <h1>⚾ Lineup Builder</h1>
             <p class="subtitle">AA Fall Ball Coach Admin App</p>
+            <button id="logoutBtn" onclick="logout()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px;">Switch Team</button>
         </header>
         
         <nav class="nav">
@@ -979,6 +980,13 @@
         
         function getStorageKey(baseKey) {
             return `lineupBuilder_${currentTeamCode}_${baseKey}`;
+        }
+        
+        function logout() {
+            if (confirm('Are you sure you want to switch teams? This will clear your current team data from this browser.')) {
+                localStorage.removeItem('lineupBuilder_teamCode');
+                location.reload();
+            }
         }
         
         
