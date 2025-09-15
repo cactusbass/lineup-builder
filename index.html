@@ -942,7 +942,6 @@
                 <p>Track cumulative playing time and identify imbalances across all games.</p>
                 
                 <div style="margin-bottom: 20px;">
-                    <button class="btn" onclick="runFastQATest()" style="background: #059669; color: white; margin-right: 10px;">🧪 Fast QA Test</button>                                                               
                     <button class="btn" onclick="rebuildSeasonStats()" style="background: #2563eb; color: white; margin-right: 10px;">🔄 Rebuild from Saved Lineups</button>                                                               
                     <button class="btn btn-secondary" onclick="clearSeasonStats()" style="background: #dc2626; color: white;">🗑️ Clear Season Stats</button>                                                             
                 </div>
@@ -1287,19 +1286,19 @@
                 const catchingInnings = stats.catchingInnings || 0;
                 const gamesPlayed = stats.gamesPlayed || 0;
                 
-                // Check for imbalances (more than +/- 1 from average)
-                const totalImbalanced = Math.abs(totalInnings - avgInnings) > 1;
-                const benchImbalanced = Math.abs(benchInnings - avgBench) > 1;
-                const infieldImbalanced = Math.abs(infieldInnings - avgInfield) > 1;
-                const outfieldImbalanced = Math.abs(outfieldInnings - avgOutfield) > 1;
+                // Check for imbalances (more than +/- 1.5 from average)
+                const totalImbalanced = Math.abs(totalInnings - avgInnings) > 1.5;
+                const benchImbalanced = Math.abs(benchInnings - avgBench) > 1.5;
+                const infieldImbalanced = Math.abs(infieldInnings - avgInfield) > 1.5;
+                const outfieldImbalanced = Math.abs(outfieldInnings - avgOutfield) > 1.5;
                 
                 // Check if player can pitch or catch
                 const canPitch = player.availablePositions.includes('P');
                 const canCatch = player.availablePositions.includes('C');
                 
                 // Only check pitching/catching imbalances if player can play those positions
-                const pitchingImbalanced = canPitch && Math.abs(pitchingInnings - avgPitching) > 1;
-                const catchingImbalanced = canCatch && Math.abs(catchingInnings - avgCatching) > 1;
+                const pitchingImbalanced = canPitch && Math.abs(pitchingInnings - avgPitching) > 1.5;
+                const catchingImbalanced = canCatch && Math.abs(catchingInnings - avgCatching) > 1.5;
                 
                 const getCellStyle = (isImbalanced) => isImbalanced ? 'background: #fef2f2; color: #dc2626; font-weight: bold;' : '';
                 
@@ -1329,7 +1328,7 @@
                 <div style="margin-top: 20px; padding: 15px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
                     <h4 style="color: #dc2626; margin: 0 0 10px 0;">⚠️ Imbalance Alert</h4>
                     <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
-                        <strong>Red numbers</strong> indicate values that are more than ±1 from the team average. 
+                        <strong>Red numbers</strong> indicate values that are more than ±1.5 from the team average.                                                                                                       
                         These players may need priority in future lineup generation to restore balance.
                     </p>
                 </div>
