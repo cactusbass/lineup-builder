@@ -1239,6 +1239,11 @@
             if (sectionName === 'players') {
                 renderPlayers();
             }
+            
+            // Refresh game player checkboxes when showing games section
+            if (sectionName === 'games') {
+                renderGamePlayerCheckboxes();
+            }
         }
         
         function renderPlayers() {
