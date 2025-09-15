@@ -6,7 +6,7 @@
     <title>Lineup Builder - AA Fall Ball Coach</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anton:wght@400&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton:wght@400&family=Roboto:wght@300;400;500;700&family=Russo+One&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -19,6 +19,34 @@
             background-color: #f5f5f5;
             color: #333;
             line-height: 1.6;
+        }
+        
+        /* Sports-style typography */
+        .sports-title {
+            font-family: 'Russo One', 'Anton', 'Arial Black', sans-serif;
+            font-weight: 400;
+            color: #BD3039;
+            -webkit-text-stroke: 2px white;
+            text-stroke: 2px white;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+            letter-spacing: 1px;
+        }
+        
+        .sports-heading {
+            font-family: 'Orbitron', 'Russo One', sans-serif;
+            font-weight: 700;
+            color: #0C2340;
+            -webkit-text-stroke: 1px white;
+            text-stroke: 1px white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 0.5px;
+        }
+        
+        .sports-subheading {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 400;
+            color: #BD3039;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         
         .container {
@@ -560,8 +588,8 @@
   <body>
     <div class="container">
         <header>
-            <h1>⚾ Lineup Builder</h1>
-            <p class="subtitle">AA Fall Ball Coach Admin App</p>
+            <h1 class="sports-title">⚾ LINEUP BUILDER</h1>
+            <p class="subtitle sports-subheading">AA Fall Ball Coach Admin App</p>
             <button id="logoutBtn" onclick="logout()" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); color: white; border: 2px solid white; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">Logout</button>
         </header>
         
@@ -603,7 +631,7 @@
         <!-- Players Section -->
         <div id="players" class="section hidden">
             <div class="card">
-                <h2>Team Roster</h2>
+                <h2 class="sports-heading">TEAM ROSTER</h2>
                 
                 <!-- Add Player Form -->
                 <div class="player-form">
@@ -676,7 +704,7 @@
         <!-- Schedule Section -->
         <div id="schedule" class="section hidden">
             <div class="card">
-                <h2>Game Schedule</h2>
+                <h2 class="sports-heading">GAME SCHEDULE</h2>
                 <p>Click on any game to manage lineups, batting order, and player availability.</p>
                 
                 <!-- Add New Game Button -->
@@ -686,7 +714,7 @@
                 
                 <!-- Generate Future Lineups Button -->
                 <div style="margin-bottom: 30px; text-align: center;">
-                    <button class="btn" onclick="generateFutureLineups()" style="background: #7c3aed; color: white; border: 2px solid #7c3aed; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">🔮 Generate Future Lineups</button>
+                    <button class="btn" onclick="generateFutureLineups()" style="background: #7c3aed; color: white; border: 2px solid #7c3aed; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 0.5px;">🔮 GENERATE FUTURE LINEUPS</button>
                     <p style="margin-top: 8px; color: #6b7280; font-size: 0.9rem;">Regenerate lineups for all future games based on current player capabilities</p>
                 </div>
                 
@@ -806,7 +834,7 @@
                     <h3>Defensive Lineup</h3>
                     <p>Generate and manage defensive position rotations for this game.</p>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                        <button class="btn" onclick="console.log('Button clicked!'); generateLineupForCurrentGame();" id="generateLineupBtn" style="background: #BD3039; color: white; border: 2px solid #BD3039; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 1000; position: relative;">Generate Defensive Lineup</button>
+                        <button class="btn" onclick="console.log('Button clicked!'); generateLineupForCurrentGame();" id="generateLineupBtn" style="background: #BD3039; color: white; border: 2px solid #BD3039; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 1000; position: relative; font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 0.5px;">GENERATE DEFENSIVE LINEUP</button>
                         <button class="btn btn-secondary" onclick="viewSavedLineupForCurrentGame()">View Saved Lineup</button>
                         <button class="btn" onclick="printLineupCardForCurrentGame()">Print Lineup Card</button>
                     </div>
@@ -848,7 +876,7 @@
         <!-- Rules & Constraints Section -->
         <div id="rules" class="section hidden">
             <div class="card">
-                <h2>Lineup Generation Rules & Constraints</h2>
+                <h2 class="sports-heading">LINEUP GENERATION RULES & CONSTRAINTS</h2>
                 <p>These rules are applied in priority order to create fair and balanced lineups.</p>
                 
                 <div class="rules-container">
@@ -944,7 +972,7 @@
         <!-- Season Stats Section -->
         <div id="seasonStats" class="section hidden">
             <div class="card">
-                <h2>Season Statistics</h2>
+                <h2 class="sports-heading">SEASON STATISTICS</h2>
                 <p>Track cumulative playing time and identify imbalances across all games.</p>
                 
                 <div style="margin-bottom: 20px;">
