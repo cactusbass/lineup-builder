@@ -1993,10 +1993,33 @@
                         
                         // Smart selection based on position type and balance
                         if (pos === 'P') {
-                            // For pitcher, rotate through available pitchers, but consider infield balance
-                            const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));
-                            const pitcherIndex = (inning - 1) % availablePitchers.length;
-                            selectedPlayer = availablePitchers[pitcherIndex];
+                            // For pitcher, prioritize consecutive innings for pitchers who will pitch more than 1 inning
+                            const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
+                            
+                            // First, try to find a pitcher who pitched last inning (for consecutive innings)
+                            const lastInningPitcher = lineup[inning - 2] ? lineup[inning - 2]['P'] : null;
+                            const consecutivePitcher = availablePitchers.find(p => 
+                                p.name === lastInningPitcher && 
+                                pitcherUsage[p.id] < 2 // Haven't reached 2 innings yet
+                            );
+                            
+                            if (consecutivePitcher) {
+                                // Use the same pitcher for consecutive innings
+                                selectedPlayer = consecutivePitcher;
+                                console.log(`Using consecutive pitcher: ${selectedPlayer.name} (inning ${inning})`);
+                            } else {
+                                // Find pitcher with lowest usage who hasn't pitched yet or has only pitched 1 inning
+                                const pitchersNeedingMoreTime = availablePitchers.filter(p => pitcherUsage[p.id] < 2);
+                                if (pitchersNeedingMoreTime.length > 0) {
+                                    selectedPlayer = pitchersNeedingMoreTime.reduce((best, current) => {
+                                        return pitcherUsage[current.id] < pitcherUsage[best.id] ? current : best;
+                                    });
+                                } else {
+                                    // Fallback to simple rotation if all pitchers are at max
+                                    const pitcherIndex = (inning - 1) % availablePitchers.length;
+                                    selectedPlayer = availablePitchers[pitcherIndex];
+                                }
+                            }
                         } else if (pos === 'C') {
                             // For catcher, rotate through available catchers, but consider infield balance
                             const availableCatchers = availableForPos.filter(p => p.availablePositions.includes('C'));
