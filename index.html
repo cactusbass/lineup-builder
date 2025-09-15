@@ -1462,9 +1462,9 @@
             // Process each game that has a saved lineup
             let gamesProcessed = 0;
             games.forEach(game => {
-                if (game.generatedLineup && game.generatedLineup.length > 0) {
+                if (game.generatedLineup && game.generatedLineup.innings && game.generatedLineup.innings.length > 0) {
                     console.log(`Processing lineup for game vs ${game.opponent}`);
-                    updateSeasonStats(game.generatedLineup);
+                    updateSeasonStats(game.generatedLineup.innings);
                     gamesProcessed++;
                 }
             });
