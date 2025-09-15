@@ -1100,6 +1100,45 @@
             return priority;
         }
         
+        // Debug function to check lineup generation readiness
+        function debugLineupGeneration() {
+            console.log('=== LINEUP GENERATION DEBUG ===');
+            console.log('Total players in roster:', players.length);
+            console.log('Players:', players.map(p => ({ id: p.id, name: p.name, positions: p.availablePositions })));
+            console.log('Total games:', games.length);
+            console.log('Games:', games.map(g => ({ id: g.id, opponent: g.opponent, availablePlayers: g.availablePlayers })));
+            console.log('Season stats:', seasonStats);
+            
+            if (players.length < 8) {
+                console.log('❌ ISSUE: Need at least 8 players in roster');
+                return false;
+            }
+            
+            const pitchers = players.filter(p => p.availablePositions.includes('P'));
+            if (pitchers.length === 0) {
+                console.log('❌ ISSUE: No pitchers found. Players need "P" in availablePositions');
+                return false;
+            }
+            
+            if (games.length === 0) {
+                console.log('❌ ISSUE: No games found. Add a game first.');
+                return false;
+            }
+            
+            const lastGame = games[games.length - 1];
+            const availablePlayers = players.filter(p => lastGame.availablePlayers.includes(p.id));
+            console.log('Last game available players:', availablePlayers.length);
+            
+            if (availablePlayers.length < 8) {
+                console.log('❌ ISSUE: Not enough players available for last game');
+                console.log('Available players:', availablePlayers.map(p => p.name));
+                return false;
+            }
+            
+            console.log('✅ All checks passed! Lineup generation should work.');
+            return true;
+        }
+        
         function logout() {
             if (confirm('Are you sure you want to logout? This will clear your current team data from this browser and you will need to enter your team code again.')) {
                 localStorage.removeItem('lineupBuilder_teamCode');
@@ -2407,6 +2446,7 @@
             console.log('Found game:', game);
             if (!game) {
                 console.log('No game found, returning');
+                alert('Error: Game not found. Please try again.');
                 return;
             }
             
@@ -2416,16 +2456,18 @@
             // Filter players to only those available for this game
             const availablePlayers = players.filter(p => game.availablePlayers.includes(p.id));
             console.log('Available players for game:', availablePlayers);
+            console.log('Total players in roster:', players.length);
+            console.log('Game available players:', game.availablePlayers);
             
             if (availablePlayers.length < 8) {
-                alert(`You need at least 8 players available for this game. Currently have ${availablePlayers.length} players.`);                                                                                       
+                alert(`You need at least 8 players available for this game. Currently have ${availablePlayers.length} players available out of ${players.length} total players. Make sure to check the player availability boxes when adding the game.`);                                                                                       
                 return;
             }
             
             const pitchers = availablePlayers.filter(p => p.availablePositions.includes('P'));
             console.log('Available pitchers:', pitchers);
             if (pitchers.length === 0) {
-                alert('You need at least one pitcher available for this game to generate a lineup');
+                alert('You need at least one pitcher available for this game to generate a lineup. Make sure at least one player has "P" (Pitcher) in their available positions.');
                 return;
             }
             
