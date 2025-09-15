@@ -2928,6 +2928,9 @@
             // Render game info
             renderGameInfo();
             
+            // Clear lineup display for new game
+            clearLineupDisplay();
+            
             // Render batting order interface
             renderBattingOrderInterface();
             
@@ -3139,6 +3142,19 @@
                 if (a[i] !== b[i]) return false;
             }
             return true;
+        }
+        
+        function clearLineupDisplay() {
+            const lineupDisplay = document.getElementById('lineup-display');
+            if (lineupDisplay) {
+                if (currentGameDetail && currentGameDetail.generatedLineup) {
+                    // If this game has a saved lineup, show it
+                    viewSavedLineup(currentGameDetail.id);
+                } else {
+                    // Otherwise, show the default message
+                    lineupDisplay.innerHTML = '<p style="color: #6b7280;">Click "Generate Defensive Lineup" to create position rotations for this game.</p>';
+                }
+            }
         }
         
         function renderGameInfo() {
