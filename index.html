@@ -1475,13 +1475,16 @@
         }
         
         function generateSmartLineup() {
+            console.log('=== generateSmartLineup START ===');
             const innings = 6;
             
             // Initialize the global lineup array
             lineup = [];
+            console.log('Initialized lineup array:', lineup);
             
             // Get the opponent name from the current game or use a default
             const opponentName = currentGameDetail ? currentGameDetail.opponent : 'Opponent';
+            console.log('Opponent name:', opponentName);
             let lineupHTML = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
             
             // Shuffle the players array to randomize selection order
@@ -1760,6 +1763,9 @@
                 </ul>
             `;
             
+            console.log('=== generateSmartLineup COMPLETE ===');
+            console.log('Final lineup array:', lineup);
+            console.log('Final lineup HTML length:', lineupHTML.length);
             return lineupHTML;
         }
         
@@ -2493,9 +2499,24 @@
             
             // Generate lineup
             console.log('Calling generateSmartLineup...');
-            const generatedLineup = generateSmartLineup();
-            console.log('Generated lineup HTML:', generatedLineup);
-            console.log('Global lineup array:', lineup);
+            console.log('Players array before generateSmartLineup:', players);
+            console.log('Current game detail:', currentGameDetail);
+            
+            try {
+                const generatedLineup = generateSmartLineup();
+                console.log('Generated lineup HTML:', generatedLineup);
+                console.log('Global lineup array:', lineup);
+                
+                if (!generatedLineup) {
+                    console.error('generateSmartLineup returned null/undefined');
+                    alert('Error: Lineup generation failed. Check console for details.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error in generateSmartLineup:', error);
+                alert('Error generating lineup: ' + error.message);
+                return;
+            }
             
             // Save the generated lineup to the game
             game.generatedLineup = {
