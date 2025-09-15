@@ -799,7 +799,7 @@
                     <h3>Defensive Lineup</h3>
                     <p>Generate and manage defensive position rotations for this game.</p>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                        <button class="btn" onclick="generateLineupForCurrentGame()">Generate Defensive Lineup</button>
+                        <button class="btn" onclick="generateLineupForCurrentGame()" id="generateLineupBtn" style="background: #BD3039; color: white; border: 2px solid #BD3039; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 1000; position: relative;">Generate Defensive Lineup</button>
                         <button class="btn btn-secondary" onclick="viewSavedLineupForCurrentGame()">View Saved Lineup</button>
                         <button class="btn" onclick="printLineupCardForCurrentGame()">Print Lineup Card</button>
                     </div>
@@ -1136,6 +1136,22 @@
             }
             
             console.log('✅ All checks passed! Lineup generation should work.');
+            return true;
+        }
+        
+        // Test function to verify button is working
+        function testGenerateButton() {
+            console.log('=== TESTING GENERATE BUTTON ===');
+            const button = document.getElementById('generateLineupBtn');
+            if (!button) {
+                console.log('❌ Button not found in DOM');
+                return false;
+            }
+            console.log('✅ Button found:', button);
+            console.log('Button onclick:', button.onclick);
+            console.log('Button style:', button.style.cssText);
+            console.log('Button disabled:', button.disabled);
+            console.log('Current game detail:', currentGameDetail);
             return true;
         }
         
@@ -2834,8 +2850,10 @@
             console.log('generateLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
             if (!currentGameDetail) {
                 console.log('No currentGameDetail, returning');
+                alert('Error: No game selected. Please select a game from the Games tab first.');
                 return;
             }
+            console.log('Generating lineup for game ID:', currentGameDetail.id);
             generateLineupForGame(currentGameDetail.id);
         }
         
