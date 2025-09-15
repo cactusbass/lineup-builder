@@ -1993,31 +1993,33 @@
                         
                         // Smart selection based on position type and balance
                         if (pos === 'P') {
-                            // For pitcher, prioritize consecutive innings for pitchers who will pitch more than 1 inning
+                            // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
                             const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
                             
-                            // First, try to find a pitcher who pitched last inning (for consecutive innings)
-                            const lastInningPitcher = lineup[inning - 2] ? lineup[inning - 2]['P'] : null;
-                            const consecutivePitcher = availablePitchers.find(p => 
-                                p.name === lastInningPitcher && 
-                                pitcherUsage[p.id] < 2 // Haven't reached 2 innings yet
-                            );
+                            // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
+                            const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
                             
-                            if (consecutivePitcher) {
-                                // Use the same pitcher for consecutive innings
-                                selectedPlayer = consecutivePitcher;
-                                console.log(`Using consecutive pitcher: ${selectedPlayer.name} (inning ${inning})`);
+                            if (unusedPitchers.length > 0) {
+                                // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
+                                selectedPlayer = unusedPitchers[0];
+                                console.log(`Using new pitcher: ${selectedPlayer.name} (inning ${inning}) - prioritizing 6 different pitchers`);
                             } else {
-                                // Find pitcher with lowest usage who hasn't pitched yet or has only pitched 1 inning
-                                const pitchersNeedingMoreTime = availablePitchers.filter(p => pitcherUsage[p.id] < 2);
-                                if (pitchersNeedingMoreTime.length > 0) {
-                                    selectedPlayer = pitchersNeedingMoreTime.reduce((best, current) => {
+                                // Second priority: If all pitchers have pitched, then use consecutive innings
+                                const lastInningPitcher = lineup[inning - 2] ? lineup[inning - 2]['P'] : null;
+                                const consecutivePitcher = availablePitchers.find(p => 
+                                    p.name === lastInningPitcher && 
+                                    pitcherUsage[p.id] < 2 // Haven't reached 2 innings yet
+                                );
+                                
+                                if (consecutivePitcher) {
+                                    // Use the same pitcher for consecutive innings
+                                    selectedPlayer = consecutivePitcher;
+                                    console.log(`Using consecutive pitcher: ${selectedPlayer.name} (inning ${inning}) - no unused pitchers available`);
+                                } else {
+                                    // Fallback: Find pitcher with lowest usage
+                                    selectedPlayer = availablePitchers.reduce((best, current) => {
                                         return pitcherUsage[current.id] < pitcherUsage[best.id] ? current : best;
                                     });
-                                } else {
-                                    // Fallback to simple rotation if all pitchers are at max
-                                    const pitcherIndex = (inning - 1) % availablePitchers.length;
-                                    selectedPlayer = availablePitchers[pitcherIndex];
                                 }
                             }
                         } else if (pos === 'C') {
