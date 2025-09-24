@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { sampleGame, samplePlayers, samplePlayerCombinations } from '../data/sampleData';
 import { LineupGenerator, calculateLineupStats } from '../utils/lineupGenerator';
-import { Lineup, Player, Game } from '../types';
+import type { Lineup, Player, Game } from '../types';
 
 const LineupPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [lineup, setLineup] = useState<Lineup | null>(null);
   const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>(samplePlayers);
+  const [players] = useState<Player[]>(samplePlayers);
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -176,9 +176,9 @@ interface FieldDiagramProps {
   lineup: Lineup;
 }
 
-const FieldDiagram: React.FC<FieldDiagramProps> = ({ lineup }) => {
+const FieldDiagram: React.FC<FieldDiagramProps> = ({ lineup: _lineup }) => {
   // This is a simplified field diagram - in a real app you'd want a more visual representation
-  const currentInning = lineup.innings[0]; // Show first inning as example
+  // const currentInning = lineup.innings[0]; // Show first inning as example
 
   return (
     <div className="max-w-md mx-auto">

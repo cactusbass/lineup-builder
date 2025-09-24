@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameStats, HitType, OutType, WalkType, PitcherStats, BatterStats } from '../types';
+import type { GameStats, HitType, OutType, WalkType, PitcherStats, BatterStats } from '../types';
 
 interface GameStatsProps {
   gameId: string;
@@ -181,7 +181,7 @@ const GameStatsComponent: React.FC<GameStatsProps> = ({
     onStatsUpdate(newStats);
   };
 
-  const recordWalk = (walkType: WalkType) => {
+  const recordWalk = (_walkType: WalkType) => {
     const newStats = { ...gameStats };
     const currentBatterStats = newStats.batters.find(b => b.playerId === currentBatter);
     const currentPitcherStats = newStats.pitchers.find(p => p.isCurrentPitcher);
@@ -209,7 +209,7 @@ const GameStatsComponent: React.FC<GameStatsProps> = ({
   };
 
   const startGame = () => {
-    const newStats = { ...gameStats, gameStatus: 'in-progress' };
+    const newStats: GameStats = { ...gameStats, gameStatus: 'in-progress' };
     setGameStats(newStats);
     onStatsUpdate(newStats);
   };

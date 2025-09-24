@@ -1,4 +1,4 @@
-import { 
+import type { 
   Player, 
   Game, 
   Lineup, 
@@ -6,10 +6,9 @@ import {
   PositionAssignment, 
   Position, 
   PlayerCombination,
-  INFIELD_POSITIONS,
-  OUTFIELD_POSITIONS,
   PlayerLineupStats
 } from '../types';
+import { INFIELD_POSITIONS, OUTFIELD_POSITIONS } from '../types';
 
 export class LineupGenerator {
   private players: Player[];
@@ -226,7 +225,7 @@ export class LineupGenerator {
   }
 
   private applyPlayerCombinations(
-    positions: PositionAssignment[],
+    _positions: PositionAssignment[],
     availablePlayers: Player[],
     usedPlayers: Set<string>
   ): void {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { samplePlayers } from '../data/sampleData';
-import { Player, Position } from '../types';
+import type { Player, Position } from '../types';
 
 const Players: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>(samplePlayers);
@@ -18,8 +18,10 @@ const Players: React.FC = () => {
     setShowAddForm(false);
   };
 
-  const handleEditPlayer = (updatedPlayer: Player) => {
-    setPlayers(players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
+  const handleEditPlayer = (updatedPlayer: Player | Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if ('id' in updatedPlayer) {
+      setPlayers(players.map(p => p.id === updatedPlayer.id ? updatedPlayer as Player : p));
+    }
     setEditingPlayer(null);
   };
 

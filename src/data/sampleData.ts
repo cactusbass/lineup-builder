@@ -1,4 +1,4 @@
-import { Player, Team, Coach, Game, PlayerCombination, Position } from '../types';
+import type { Player, Team, Coach, Game, PlayerCombination } from '../types';
 
 export const sampleCoach: Coach = {
   id: 'coach-1',

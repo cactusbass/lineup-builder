@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sampleGame, sampleTeam } from '../data/sampleData';
-import { Game, GameStats } from '../types';
+import type { Game, GameStats } from '../types';
 import GameStatsComponent from '../components/GameStats';
 
 const Games: React.FC = () => {
   const [games, setGames] = useState<Game[]>([sampleGame]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [trackingGameId, setTrackingGameId] = useState<string | null>(null);
-  const [gameStats, setGameStats] = useState<GameStats | null>(null);
+  const [, setGameStats] = useState<GameStats | null>(null);
 
   const handleAddGame = (newGame: Omit<Game, 'id' | 'createdAt' | 'updatedAt'>) => {
     const game: Game = {
