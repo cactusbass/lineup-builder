@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Season Stats Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Season Stats QA Tester</h1>
+    <p>This tool helps verify that the season-long balance tracking is working correctly.</p>
+    
+    <div class="test-section info">
+        <h3>📋 Quick Test Steps</h3>
+        <ol>
+            <li>Open the main app: <a href="https://cactusbass.github.io/lineup-builder/" target="_blank">https://cactusbass.github.io/lineup-builder/</a></li>
+            <li>Enter a test team code (e.g., "test")</li>
+            <li>Add 10 players to your roster</li>
+            <li>Generate Game 1 lineup</li>
+            <li>Generate Game 2 lineup</li>
+            <li>Come back here and run the tests below</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 1: Check Season Stats Data</h3>
+        <button onclick="checkSeasonStats()">Check Season Stats</button>
+        <div id="seasonStatsResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 2: Verify Cumulative Balance</h3>
+        <button onclick="checkCumulativeBalance()">Check Cumulative Balance</button>
+        <div id="cumulativeBalanceResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 3: Check Data Persistence</h3>
+        <button onclick="checkDataPersistence()">Check Data Persistence</button>
+        <div id="dataPersistenceResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 4: Validate Missed Games Logic</h3>
+        <button onclick="checkMissedGamesLogic()">Check Missed Games Logic</button>
+        <div id="missedGamesResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧹 Reset Test Data</h3>
+        <button onclick="resetTestData()" style="background-color: #dc3545; color: white;">Clear All Test Data</button>
+        <div id="resetResult"></div>
+    </div>
+
+    <script>
+        function checkSeasonStats() {
+            const resultDiv = document.getElementById('seasonStatsResult');
+            
+            try {
+                // Check if we can access the main app's data
+                const teamCode = localStorage.getItem('lineupBuilder_teamCode');
+                if (!teamCode) {
+                    resultDiv.innerHTML = '<div class="error">❌ No team code found. Please open the main app first and enter a team code.</div>';
+                    return;
+                }
+
+                const seasonStatsKey = `lineupBuilder_${teamCode}_seasonStats`;
+                const seasonStats = localStorage.getItem(seasonStatsKey);
+                
+                if (!seasonStats) {
+                    resultDiv.innerHTML = '<div class="error">❌ No season stats found. Please generate at least one lineup in the main app.</div>';
+                    return;
+                }
+
+                const stats = JSON.parse(seasonStats);
+                const playerCount = Object.keys(stats.playerStats || {}).length;
+                
+                if (playerCount === 0) {
+                    resultDiv.innerHTML = '<div class="error">❌ Season stats exist but no player data found. This might indicate an issue with stats updating.</div>';
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Season stats found!<br>
+                        <strong>Team Code:</strong> ${teamCode}<br>
+                        <strong>Players with stats:</strong> ${playerCount}<br>
+                        <strong>Last Updated:</strong> ${stats.lastUpdated || 'Unknown'}<br>
+                        <details>
+                            <summary>View Raw Data</summary>
+                            <pre>${JSON.stringify(stats, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error checking season stats: ${error.message}</div>`;
+            }
+        }
+
+        function checkCumulativeBalance() {
+            const resultDiv = document.getElementById('cumulativeBalanceResult');
+            
+            try {
+                const teamCode = localStorage.getItem('lineupBuilder_teamCode');
+                if (!teamCode) {
+                    resultDiv.innerHTML = '<div class="error">❌ No team code found. Please open the main app first.</div>';
+                    return;
+                }
+
+                const seasonStatsKey = `lineupBuilder_${teamCode}_seasonStats`;
+                const seasonStats = localStorage.getItem(seasonStatsKey);
+                
+                if (!seasonStats) {
+                    resultDiv.innerHTML = '<div class="error">❌ No season stats found. Please generate at least one lineup.</div>';
+                    return;
+                }
+
+                const stats = JSON.parse(seasonStats);
+                const playerStats = stats.playerStats || {};
+                
+                if (Object.keys(playerStats).length === 0) {
+                    resultDiv.innerHTML = '<div class="error">❌ No player stats found.</div>';
+                    return;
+                }
+
+                // Calculate balance metrics
+                const totalInnings = Object.values(playerStats).map(p => p.totalInnings || 0);
+                const benchInnings = Object.values(playerStats).map(p => p.benchInnings || 0);
+                const infieldInnings = Object.values(playerStats).map(p => p.infieldInnings || 0);
+                const outfieldInnings = Object.values(playerStats).map(p => p.outfieldInnings || 0);
+
+                const maxTotal = Math.max(...totalInnings);
+                const minTotal = Math.min(...totalInnings);
+                const maxBench = Math.max(...benchInnings);
+                const minBench = Math.min(...benchInnings);
+
+                const totalBalance = maxTotal - minTotal;
+                const benchBalance = maxBench - minBench;
+
+                let balanceStatus = '✅ Good';
+                if (totalBalance > 3) balanceStatus = '⚠️ Moderate imbalance';
+                if (totalBalance > 6) balanceStatus = '❌ Significant imbalance';
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ${balanceStatus}<br>
+                        <strong>Total Innings Balance:</strong> ${totalBalance} (${minTotal}-${maxTotal})<br>
+                        <strong>Bench Time Balance:</strong> ${benchBalance} (${minBench}-${maxBench})<br>
+                        <strong>Players:</strong> ${Object.keys(playerStats).length}<br>
+                        <details>
+                            <summary>View Player Breakdown</summary>
+                            <pre>${JSON.stringify(playerStats, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error checking cumulative balance: ${error.message}</div>`;
+            }
+        }
+
+        function checkDataPersistence() {
+            const resultDiv = document.getElementById('dataPersistenceResult');
+            
+            try {
+                const teamCode = localStorage.getItem('lineupBuilder_teamCode');
+                const playersKey = `lineupBuilder_${teamCode}_players`;
+                const gamesKey = `lineupBuilder_${teamCode}_games`;
+                const seasonStatsKey = `lineupBuilder_${teamCode}_seasonStats`;
+
+                const players = localStorage.getItem(playersKey);
+                const games = localStorage.getItem(gamesKey);
+                const seasonStats = localStorage.getItem(seasonStatsKey);
+
+                let status = '✅ All data found';
+                if (!players) status = '❌ Players data missing';
+                if (!games) status = '❌ Games data missing';
+                if (!seasonStats) status = '❌ Season stats missing';
+
+                resultDiv.innerHTML = `
+                    <div class="${status.includes('✅') ? 'success' : 'error'}">
+                        ${status}<br>
+                        <strong>Players:</strong> ${players ? 'Found' : 'Missing'}<br>
+                        <strong>Games:</strong> ${games ? 'Found' : 'Missing'}<br>
+                        <strong>Season Stats:</strong> ${seasonStats ? 'Found' : 'Missing'}<br>
+                        <strong>Team Code:</strong> ${teamCode || 'Missing'}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error checking data persistence: ${error.message}</div>`;
+            }
+        }
+
+        function checkMissedGamesLogic() {
+            const resultDiv = document.getElementById('missedGamesResult');
+            
+            try {
+                const teamCode = localStorage.getItem('lineupBuilder_teamCode');
+                if (!teamCode) {
+                    resultDiv.innerHTML = '<div class="error">❌ No team code found.</div>';
+                    return;
+                }
+
+                const seasonStatsKey = `lineupBuilder_${teamCode}_seasonStats`;
+                const seasonStats = localStorage.getItem(seasonStatsKey);
+                
+                if (!seasonStats) {
+                    resultDiv.innerHTML = '<div class="error">❌ No season stats found.</div>';
+                    return;
+                }
+
+                const stats = JSON.parse(seasonStats);
+                const playerStats = stats.playerStats || {};
+                
+                // Check for players with zero stats (should be players who missed games)
+                const zeroStatsPlayers = Object.entries(playerStats).filter(([id, stats]) => 
+                    stats.totalInnings === 0 && stats.gamesPlayed === 0
+                );
+
+                if (zeroStatsPlayers.length > 0) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Missed games logic working correctly<br>
+                            <strong>Players with zero stats:</strong> ${zeroStatsPlayers.length}<br>
+                            <strong>These players likely missed games and weren't penalized</strong><br>
+                            <details>
+                                <summary>View Zero Stats Players</summary>
+                                <pre>${JSON.stringify(zeroStatsPlayers, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            ℹ️ No players with zero stats found<br>
+                            <strong>This could mean:</strong><br>
+                            - All players participated in all games<br>
+                            - Need to test with some players missing games<br>
+                            - Logic is working as expected
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error checking missed games logic: ${error.message}</div>`;
+            }
+        }
+
+        function resetTestData() {
+            const resultDiv = document.getElementById('resetResult');
+            
+            if (confirm('Are you sure you want to clear all test data? This will remove all players, games, and season stats.')) {
+                try {
+                    const teamCode = localStorage.getItem('lineupBuilder_teamCode');
+                    if (teamCode) {
+                        localStorage.removeItem(`lineupBuilder_${teamCode}_players`);
+                        localStorage.removeItem(`lineupBuilder_${teamCode}_games`);
+                        localStorage.removeItem(`lineupBuilder_${teamCode}_seasonStats`);
+                    }
+                    localStorage.removeItem('lineupBuilder_teamCode');
+                    
+                    resultDiv.innerHTML = '<div class="success">✅ All test data cleared! You can now start fresh testing.</div>';
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="error">❌ Error clearing data: ${error.message}</div>`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
