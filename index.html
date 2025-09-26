@@ -958,6 +958,25 @@
                 </div>
             </div>
             
+            <!-- Season Player Stats Section -->
+            <div class="card" style="margin-top: 20px;">
+                <h3 class="sports-subheading">📊 Season Player Statistics</h3>
+                <p style="margin-bottom: 15px; color: #6b7280;">Track detailed stats for each player across all games.</p>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <button class="btn" onclick="showPitcherStats()" style="background: #dc2626; color: white; border: 2px solid #dc2626;">
+                        🎯 Pitcher Stats
+                    </button>
+                    <button class="btn" onclick="showBatterStats()" style="background: #059669; color: white; border: 2px solid #059669;">
+                        ⚾ Batter Stats
+                    </button>
+                </div>
+                
+                <div id="playerStatsContent">
+                    <p style="color: #6b7280; text-align: center; padding: 20px;">Click a button above to view detailed player statistics</p>
+                </div>
+            </div>
+            
         </div>
         
         <!-- Players Section -->
@@ -1341,6 +1360,57 @@
             batters: []
         };
         
+        // Season-long persistent stats
+        let seasonPlayerStats = {
+            pitchers: {}, // playerId -> { totalPitches, strikes, balls, hitsAllowed, runsAllowed, strikeouts, walks }
+            batters: {}   // playerId -> { atBats, hits, singles, doubles, triples, homeRuns, strikeouts, walks, stolenBases, rbi, runs }
+        };
+        
+        // Load season player stats from localStorage
+        function loadSeasonPlayerStats() {
+            const saved = localStorage.getItem(getStorageKey('seasonPlayerStats'));
+            if (saved) {
+                seasonPlayerStats = JSON.parse(saved);
+            }
+        }
+        
+        // Save season player stats to localStorage
+        async function saveSeasonPlayerStats() {
+            localStorage.setItem(getStorageKey('seasonPlayerStats'), JSON.stringify(seasonPlayerStats));
+            await saveToFirebase(); // Also save to cloud
+        }
+        
+        // Initialize player stats if they don't exist
+        function initializePlayerStats(playerId) {
+            if (!seasonPlayerStats.pitchers[playerId]) {
+                seasonPlayerStats.pitchers[playerId] = {
+                    totalPitches: 0,
+                    strikes: 0,
+                    balls: 0,
+                    hitsAllowed: 0,
+                    runsAllowed: 0,
+                    strikeouts: 0,
+                    walks: 0,
+                    inningsPitched: 0
+                };
+            }
+            if (!seasonPlayerStats.batters[playerId]) {
+                seasonPlayerStats.batters[playerId] = {
+                    atBats: 0,
+                    hits: 0,
+                    singles: 0,
+                    doubles: 0,
+                    triples: 0,
+                    homeRuns: 0,
+                    strikeouts: 0,
+                    walks: 0,
+                    stolenBases: 0,
+                    rbi: 0,
+                    runs: 0
+                };
+            }
+        }
+        
         // Initialize game stats for a game
         function initializeGameStats(gameId) {
             const game = games.find(g => g.id === gameId);
@@ -1431,19 +1501,29 @@
                 currentBatterStats.atBats++;
                 currentBatterStats.hits++;
                 
+                // Update season batter stats
+                initializePlayerStats(currentBatterStats.playerId);
+                seasonPlayerStats.batters[currentBatterStats.playerId].atBats++;
+                seasonPlayerStats.batters[currentBatterStats.playerId].hits++;
+                
                 switch (hitType) {
                     case 'single':
                         currentBatterStats.singles++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].singles++;
                         break;
                     case 'double':
                         currentBatterStats.doubles++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].doubles++;
                         break;
                     case 'triple':
                         currentBatterStats.triples++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].triples++;
                         break;
                     case 'home-run':
                         currentBatterStats.homeRuns++;
                         currentBatterStats.runs++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].homeRuns++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].runs++;
                         // Add run to current inning
                         if (gameStats.isHomeTeam) {
                             currentInningStats.homeRuns++;
@@ -1459,6 +1539,11 @@
                 currentPitcherStats.hitsAllowed++;
                 currentPitcherStats.pitchesThrown += Math.floor(Math.random() * 3) + 1; // Mock pitch count
                 
+                // Update season pitcher stats
+                initializePlayerStats(currentPitcherStats.playerId);
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].hitsAllowed++;
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches += Math.floor(Math.random() * 3) + 1;
+                
                 // Update inning stats
                 if (gameStats.isHomeTeam) {
                     currentInningStats.homeHits++;
@@ -1469,6 +1554,7 @@
             
             updateScoreboard();
             updatePitcherStatsDisplay();
+            saveSeasonPlayerStats();
             console.log(`Recorded ${hitType} for ${currentBatterStats?.playerName}`);
         }
         
@@ -1521,9 +1607,87 @@
             const currentPitcherStats = gameStats.pitchers.find(p => p.isCurrentPitcher);
             if (currentPitcherStats) {
                 currentPitcherStats.pitchesThrown++;
+                
+                // Update season stats
+                initializePlayerStats(currentPitcherStats.playerId);
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches++;
             }
             updateScoreboard();
             updatePitcherStatsDisplay();
+            saveSeasonPlayerStats();
+        }
+        
+        function addStrike() {
+            const currentPitcherStats = gameStats.pitchers.find(p => p.isCurrentPitcher);
+            if (currentPitcherStats) {
+                currentPitcherStats.pitchesThrown++;
+                currentPitcherStats.strikeouts++; // Assume strikeout for now
+                
+                // Update season stats
+                initializePlayerStats(currentPitcherStats.playerId);
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches++;
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].strikes++;
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].strikeouts++;
+            }
+            updateScoreboard();
+            updatePitcherStatsDisplay();
+            saveSeasonPlayerStats();
+        }
+        
+        function addBall() {
+            const currentPitcherStats = gameStats.pitchers.find(p => p.isCurrentPitcher);
+            if (currentPitcherStats) {
+                currentPitcherStats.pitchesThrown++;
+                
+                // Update season stats
+                initializePlayerStats(currentPitcherStats.playerId);
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches++;
+                seasonPlayerStats.pitchers[currentPitcherStats.playerId].balls++;
+            }
+            updateScoreboard();
+            updatePitcherStatsDisplay();
+            saveSeasonPlayerStats();
+        }
+        
+        function subtractPitch() {
+            const currentPitcherStats = gameStats.pitchers.find(p => p.isCurrentPitcher);
+            if (currentPitcherStats && currentPitcherStats.pitchesThrown > 0) {
+                currentPitcherStats.pitchesThrown--;
+                
+                // Update season stats
+                initializePlayerStats(currentPitcherStats.playerId);
+                if (seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches > 0) {
+                    seasonPlayerStats.pitchers[currentPitcherStats.playerId].totalPitches--;
+                }
+            }
+            updateScoreboard();
+            updatePitcherStatsDisplay();
+            saveSeasonPlayerStats();
+        }
+        
+        function recordBatterStat(statType) {
+            const currentBatterStats = gameStats.batters.find(b => b.playerId === gameStats.currentBatter);
+            if (currentBatterStats) {
+                initializePlayerStats(currentBatterStats.playerId);
+                
+                switch (statType) {
+                    case 'stolenBase':
+                        currentBatterStats.stolenBases++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].stolenBases++;
+                        break;
+                    case 'rbi':
+                        currentBatterStats.rbi++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].rbi++;
+                        break;
+                    case 'run':
+                        currentBatterStats.runs++;
+                        seasonPlayerStats.batters[currentBatterStats.playerId].runs++;
+                        break;
+                }
+                
+                saveSeasonPlayerStats();
+                console.log(`Recorded ${statType} for ${currentBatterStats.playerName}`);
+            }
         }
         
         function startGame() {
@@ -1890,6 +2054,134 @@
             }
         }
         
+        function showPitcherStats() {
+            const content = document.getElementById('playerStatsContent');
+            if (!content) return;
+            
+            let html = '<h4 style="color: #dc2626; margin-bottom: 15px;">🎯 Pitcher Statistics</h4>';
+            
+            const pitcherStats = seasonPlayerStats.pitchers;
+            const pitcherIds = Object.keys(pitcherStats);
+            
+            if (pitcherIds.length === 0) {
+                html += '<p style="color: #6b7280; text-align: center; padding: 20px;">No pitcher statistics recorded yet.</p>';
+            } else {
+                pitcherIds.forEach(playerId => {
+                    const player = players.find(p => p.id === parseInt(playerId));
+                    const stats = pitcherStats[playerId];
+                    if (player && stats) {
+                        html += `
+                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                                <h5 style="color: #dc2626; margin: 0 0 10px 0;">${player.name}</h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #dc2626;">${stats.totalPitches}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Total Pitches</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #059669;">${stats.strikes}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Strikes</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #f59e0b;">${stats.balls}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Balls</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #ef4444;">${stats.hitsAllowed}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Hits Allowed</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #8b5cf6;">${stats.strikeouts}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Strikeouts</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                                        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">${stats.walks}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Walks</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        function showBatterStats() {
+            const content = document.getElementById('playerStatsContent');
+            if (!content) return;
+            
+            let html = '<h4 style="color: #059669; margin-bottom: 15px;">⚾ Batter Statistics</h4>';
+            
+            const batterStats = seasonPlayerStats.batters;
+            const batterIds = Object.keys(batterStats);
+            
+            if (batterIds.length === 0) {
+                html += '<p style="color: #6b7280; text-align: center; padding: 20px;">No batter statistics recorded yet.</p>';
+            } else {
+                batterIds.forEach(playerId => {
+                    const player = players.find(p => p.id === parseInt(playerId));
+                    const stats = batterStats[playerId];
+                    if (player && stats) {
+                        html += `
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                                <h5 style="color: #059669; margin: 0 0 10px 0;">${player.name}</h5>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #059669;">${stats.atBats}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">AB</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #059669;">${stats.hits}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">Hits</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #10b981;">${stats.singles}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">1B</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #3b82f6;">${stats.doubles}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">2B</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #8b5cf6;">${stats.triples}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">3B</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #f59e0b;">${stats.homeRuns}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">HR</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #ef4444;">${stats.strikeouts}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">K</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #06b6d4;">${stats.walks}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">BB</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #84cc16;">${stats.stolenBases}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">SB</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #f97316;">${stats.rbi}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">RBI</div>
+                                    </div>
+                                    <div style="text-align: center; background: white; padding: 6px; border-radius: 4px;">
+                                        <div style="font-size: 16px; font-weight: bold; color: #ec4899;">${stats.runs}</div>
+                                        <div style="font-size: 11px; color: #6b7280;">Runs</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            content.innerHTML = html;
+        }
+        
         // Team management functions
         async function initializeTeam() {
             // Check if we have a team code in localStorage
@@ -1921,6 +2213,9 @@
                 loadGames();
                 loadSeasonStats();
             }
+            
+            // Load season player stats
+            loadSeasonPlayerStats();
             
             // Set up real-time listener for team collaboration
             setupFirebaseListener();
@@ -4469,7 +4764,27 @@
                         <button class="action-btn btn-out" onclick="recordOut('groundout')">Groundout</button>
                         <button class="action-btn btn-out" onclick="recordOut('flyout')">Flyout</button>
                         <button class="action-btn btn-walk" onclick="recordWalk('walk')">Walk</button>
-                        <button class="action-btn btn-pitch" onclick="addPitch()">Pitch (+1)</button>
+                    </div>
+                    
+                    <!-- Detailed Pitch Tracking -->
+                    <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 16px;">🎯 Pitch Tracking</h4>
+                        <div class="action-buttons">
+                            <button class="action-btn btn-pitch" onclick="addPitch()">Pitch (+1)</button>
+                            <button class="action-btn" onclick="addStrike()" style="background: #10b981; color: white;">Strike</button>
+                            <button class="action-btn" onclick="addBall()" style="background: #f59e0b; color: white;">Ball</button>
+                            <button class="action-btn" onclick="subtractPitch()" style="background: #ef4444; color: white;">-1 Pitch</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Batter Stats -->
+                    <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border: 1px solid #0ea5e9;">
+                        <h4 style="margin: 0 0 15px 0; color: #0c4a6e; font-size: 16px;">⚾ Batter Stats</h4>
+                        <div class="action-buttons">
+                            <button class="action-btn" onclick="recordBatterStat('stolenBase')" style="background: #8b5cf6; color: white;">Stolen Base</button>
+                            <button class="action-btn" onclick="recordBatterStat('rbi')" style="background: #06b6d4; color: white;">RBI</button>
+                            <button class="action-btn" onclick="recordBatterStat('run')" style="background: #84cc16; color: white;">Run</button>
+                        </div>
                     </div>
                     
                     <!-- Current Pitcher Stats -->
