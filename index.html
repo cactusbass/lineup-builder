@@ -1808,34 +1808,35 @@
                 const teamRef = getTeamDocRef(currentTeamCode);
                 
                 teamRef.onSnapshot((doc) => {
+                    console.log('Firebase listener triggered, doc exists:', doc.exists);
                     if (doc.exists) {
                         const data = doc.data();
                         const remotePlayers = data.players || [];
                         const remoteGames = data.games || [];
                         const remoteSeasonStats = data.seasonStats || { playerStats: {}, lastUpdated: null };
                         
-                        // Check if data has actually changed
-                        const localDataChanged = JSON.stringify(players) !== JSON.stringify(remotePlayers) ||
-                                               JSON.stringify(games) !== JSON.stringify(remoteGames) ||
-                                               JSON.stringify(seasonStats) !== JSON.stringify(remoteSeasonStats);
+                        console.log('Remote data received:', { 
+                            players: remotePlayers.length, 
+                            games: remoteGames.length 
+                        });
                         
-                        if (localDataChanged) {
-                            // Update local data
-                            players = remotePlayers;
-                            games = remoteGames;
-                            seasonStats = remoteSeasonStats;
-                            
-                            // Update UI
-                            renderPlayers();
-                            renderGames();
-                            renderSeasonStats();
-                            updateDashboardStats();
-                            
-                            console.log('Data synced from cloud in real-time');
-                            
-                            // Show notification
-                            showSyncNotification('Data updated from cloud!');
-                        }
+                        // Always update local data from cloud (simplified logic)
+                        players = remotePlayers;
+                        games = remoteGames;
+                        seasonStats = remoteSeasonStats;
+                        
+                        // Update UI
+                        renderPlayers();
+                        renderGames();
+                        renderSeasonStats();
+                        updateDashboardStats();
+                        
+                        console.log('Data synced from cloud in real-time');
+                        
+                        // Show notification
+                        showSyncNotification('Data updated from cloud!');
+                    } else {
+                        console.log('No document found in Firebase for team:', currentTeamCode);
                     }
                 });
                 
