@@ -2008,8 +2008,24 @@
                             seasonPlayerStats: Object.keys(remoteSeasonPlayerStats.pitchers).length + ' pitchers, ' + Object.keys(remoteSeasonPlayerStats.batters).length + ' batters'
                         });
                         
-                        // Only update if remote data has actual content
-                        if (remotePlayers.length > 0 || remoteGames.length > 0) {
+                        // Only update if remote data has actual content AND is newer
+                        const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
+                        const remoteLastUpdated = data.lastUpdated;
+                        
+                        console.log('Firebase listener data check:', {
+                            remotePlayers: remotePlayers.length,
+                            remoteGames: remoteGames.length,
+                            localLastUpdated: localLastUpdated,
+                            remoteLastUpdated: remoteLastUpdated,
+                            shouldUpdate: remotePlayers.length > 0 && remoteGames.length > 0 && 
+                                         (!localLastUpdated || (remoteLastUpdated && remoteLastUpdated > new Date(localLastUpdated)))
+                        });
+                        
+                        if (remotePlayers.length > 0 && remoteGames.length > 0 && 
+                            (!localLastUpdated || (remoteLastUpdated && remoteLastUpdated > new Date(localLastUpdated)))) {
+                            
+                            console.log('Updating from Firebase - remote data is newer and has content');
+                            
                             // Smart merge instead of overwrite
                             players = mergePlayers(players, remotePlayers);
                             games = mergeGames(games, remoteGames);
@@ -2027,7 +2043,7 @@
                             // Show notification
                             showSyncNotification('Data updated from cloud!');
                         } else {
-                            console.log('Remote data is empty, keeping local data');
+                            console.log('Keeping local data - remote is empty or not newer');
                         }
                     } else {
                         console.log('No document found in Firebase for team:', currentTeamCode);
@@ -2554,6 +2570,15 @@
             renderSeasonStats();
             updateDashboardStats();
             
+            console.log('Local data loaded:', {
+                players: players.length,
+                games: games.length,
+                seasonStats: Object.keys(seasonStats.playerStats).length
+            });
+            
+            // Wait a moment to ensure UI is stable
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             // Then try to load from Firebase in background
             const firebaseLoaded = await loadFromFirebase();
             
@@ -2574,8 +2599,10 @@
                 }
             }
             
-            // Set up real-time listener for team collaboration
-            setupFirebaseListener();
+            // Set up real-time listener for team collaboration (delayed to prevent interference)
+            setTimeout(() => {
+                setupFirebaseListener();
+            }, 2000);
             
             // Update sync status to show connection
             updateSyncStatus('connected', 'Connected to cloud');
