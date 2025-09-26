@@ -953,6 +953,9 @@
                     <button class="btn" onclick="recoverData()" style="background: #dc2626; color: white; border: 2px solid #dc2626;">
                         🚨 Recover Data
                     </button>
+                    <button class="btn" onclick="enableSafeMode()" style="background: #7c3aed; color: white; border: 2px solid #7c3aed;">
+                        🛡️ Safe Mode (Local Only)
+                    </button>
                 </div>
                 
                 <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 14px;">
@@ -1372,6 +1375,9 @@
             batters: {}   // playerId -> { atBats, hits, singles, doubles, triples, homeRuns, strikeouts, walks, stolenBases, rbi, runs }
         };
         
+        // Safe mode flag to disable Firebase sync
+        let safeMode = false;
+        
         // Load season player stats from localStorage
         function loadSeasonPlayerStats() {
             const saved = localStorage.getItem(getStorageKey('seasonPlayerStats'));
@@ -1383,7 +1389,9 @@
         // Save season player stats to localStorage
         async function saveSeasonPlayerStats() {
             localStorage.setItem(getStorageKey('seasonPlayerStats'), JSON.stringify(seasonPlayerStats));
-            await saveToFirebase(); // Also save to cloud
+            if (!safeMode) {
+                await saveToFirebase(); // Also save to cloud
+            }
         }
         
         // Initialize player stats if they don't exist
@@ -2536,8 +2544,40 @@
             }
         }
         
+        // Safe Mode function to disable Firebase and use only local storage
+        function enableSafeMode() {
+            if (confirm('Enable Safe Mode? This will disable Firebase sync and use only local storage to prevent data corruption. You can still export/import data manually.')) {
+                safeMode = true;
+                localStorage.setItem('lineupBuilder_safeMode', 'true');
+                
+                // Reload data from localStorage only
+                loadPlayers();
+                loadGames();
+                loadSeasonStats();
+                loadSeasonPlayerStats();
+                
+                // Update UI
+                renderPlayers();
+                renderGames();
+                renderSeasonStats();
+                updateDashboardStats();
+                
+                updateSyncStatus('connected', 'Safe Mode: Local storage only');
+                showSyncNotification('🛡️ Safe Mode enabled - Firebase sync disabled');
+                
+                console.log('Safe Mode enabled - Firebase sync disabled');
+            }
+        }
+        
         // Team management functions
         async function initializeTeam() {
+            // Check for Safe Mode first
+            const safeModeEnabled = localStorage.getItem('lineupBuilder_safeMode') === 'true';
+            if (safeModeEnabled) {
+                safeMode = true;
+                console.log('Safe Mode detected - skipping Firebase sync');
+            }
+            
             // Check if we have a team code in localStorage
             const savedTeamCode = localStorage.getItem('lineupBuilder_teamCode');
             
@@ -2576,36 +2616,42 @@
                 seasonStats: Object.keys(seasonStats.playerStats).length
             });
             
-            // Wait a moment to ensure UI is stable
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Then try to load from Firebase in background
-            const firebaseLoaded = await loadFromFirebase();
-            
-            if (firebaseLoaded) {
-                // Only update UI if Firebase has more recent data
-                const remoteData = await getRemoteData();
-                if (remoteData && remoteData.lastUpdated) {
-                    const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
-                    if (!localLastUpdated || remoteData.lastUpdated > new Date(localLastUpdated)) {
-                        console.log('Firebase has newer data, updating UI');
-                        renderPlayers();
-                        renderGames();
-                        renderSeasonStats();
-                        updateDashboardStats();
-                    } else {
-                        console.log('Local data is newer, keeping local data');
+            if (safeMode) {
+                // Safe Mode: Skip Firebase entirely
+                updateSyncStatus('connected', 'Safe Mode: Local storage only');
+                console.log('Safe Mode active - Firebase sync disabled');
+            } else {
+                // Wait a moment to ensure UI is stable
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Then try to load from Firebase in background
+                const firebaseLoaded = await loadFromFirebase();
+                
+                if (firebaseLoaded) {
+                    // Only update UI if Firebase has more recent data
+                    const remoteData = await getRemoteData();
+                    if (remoteData && remoteData.lastUpdated) {
+                        const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
+                        if (!localLastUpdated || remoteData.lastUpdated > new Date(localLastUpdated)) {
+                            console.log('Firebase has newer data, updating UI');
+                            renderPlayers();
+                            renderGames();
+                            renderSeasonStats();
+                            updateDashboardStats();
+                        } else {
+                            console.log('Local data is newer, keeping local data');
+                        }
                     }
                 }
+                
+                // Set up real-time listener for team collaboration (delayed to prevent interference)
+                setTimeout(() => {
+                    setupFirebaseListener();
+                }, 2000);
+                
+                // Update sync status to show connection
+                updateSyncStatus('connected', 'Connected to cloud');
             }
-            
-            // Set up real-time listener for team collaboration (delayed to prevent interference)
-            setTimeout(() => {
-                setupFirebaseListener();
-            }, 2000);
-            
-            // Update sync status to show connection
-            updateSyncStatus('connected', 'Connected to cloud');
             
             // Update the page title to show team
             updatePageTitle();
@@ -2636,7 +2682,9 @@
         
         async function saveSeasonStats() {
             localStorage.setItem(getStorageKey('seasonStats'), JSON.stringify(seasonStats));
-            await saveToFirebase(); // Also save to cloud
+            if (!safeMode) {
+                await saveToFirebase(); // Also save to cloud
+            }
         }
         
         function updateSeasonStats(gameLineup) {
@@ -3233,7 +3281,9 @@
         // Save players to localStorage
         async function savePlayers() {
             localStorage.setItem(getStorageKey('players'), JSON.stringify(players));
-            await saveToFirebase(); // Also save to cloud
+            if (!safeMode) {
+                await saveToFirebase(); // Also save to cloud
+            }
         }
         
         let editingPlayerId = null;
@@ -3904,7 +3954,9 @@
         
         async function saveGames() {
             localStorage.setItem(getStorageKey('games'), JSON.stringify(games));
-            await saveToFirebase(); // Also save to cloud
+            if (!safeMode) {
+                await saveToFirebase(); // Also save to cloud
+            }
         }
         
         function renderGamePlayerCheckboxes() {
