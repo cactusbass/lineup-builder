@@ -950,6 +950,9 @@
                     <button class="btn" onclick="forceSync()" style="background: #f59e0b; color: white; border: 2px solid #f59e0b;">
                         🔄 Force Sync Now
                     </button>
+                    <button class="btn" onclick="recoverData()" style="background: #dc2626; color: white; border: 2px solid #dc2626;">
+                        🚨 Recover Data
+                    </button>
                 </div>
                 
                 <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 14px;">
@@ -2279,6 +2282,16 @@
         
         // Smart merge functions to prevent data loss
         function mergePlayers(localPlayers, remotePlayers) {
+            // Safety check: if either array is empty, return the non-empty one
+            if (!localPlayers || localPlayers.length === 0) {
+                console.log('Local players empty, using remote players');
+                return remotePlayers || [];
+            }
+            if (!remotePlayers || remotePlayers.length === 0) {
+                console.log('Remote players empty, using local players');
+                return localPlayers || [];
+            }
+            
             const merged = [...localPlayers];
             const localIds = new Set(localPlayers.map(p => p.id));
             
@@ -2301,6 +2314,16 @@
         }
         
         function mergeGames(localGames, remoteGames) {
+            // Safety check: if either array is empty, return the non-empty one
+            if (!localGames || localGames.length === 0) {
+                console.log('Local games empty, using remote games');
+                return remoteGames || [];
+            }
+            if (!remoteGames || remoteGames.length === 0) {
+                console.log('Remote games empty, using local games');
+                return localGames || [];
+            }
+            
             const merged = [...localGames];
             const localIds = new Set(localGames.map(g => g.id));
             
@@ -2402,6 +2425,80 @@
             });
             
             return merged;
+        }
+        
+        // Emergency data recovery function
+        async function recoverData() {
+            updateSyncStatus('syncing', 'Attempting data recovery...');
+            
+            try {
+                console.log('🚨 Starting data recovery...');
+                
+                // Try to recover from localStorage first
+                const localPlayers = JSON.parse(localStorage.getItem(getStorageKey('players')) || '[]');
+                const localGames = JSON.parse(localStorage.getItem(getStorageKey('games')) || '[]');
+                const localSeasonStats = JSON.parse(localStorage.getItem(getStorageKey('seasonStats')) || '{"playerStats": {}, "lastUpdated": null}');
+                const localSeasonPlayerStats = JSON.parse(localStorage.getItem(getStorageKey('seasonPlayerStats')) || '{"pitchers": {}, "batters": {}}');
+                
+                console.log('Local data found:', {
+                    players: localPlayers.length,
+                    games: localGames.length,
+                    seasonStats: Object.keys(localSeasonStats.playerStats).length,
+                    seasonPlayerStats: Object.keys(localSeasonPlayerStats.pitchers).length + Object.keys(localSeasonPlayerStats.batters).length
+                });
+                
+                // If we have local data, restore it
+                if (localPlayers.length > 0 || localGames.length > 0) {
+                    players = localPlayers;
+                    games = localGames;
+                    seasonStats = localSeasonStats;
+                    seasonPlayerStats = localSeasonPlayerStats;
+                    
+                    // Update UI
+                    renderPlayers();
+                    renderGames();
+                    renderSeasonStats();
+                    updateDashboardStats();
+                    
+                    // Save to Firebase
+                    await saveToFirebase();
+                    
+                    updateSyncStatus('connected', 'Data recovered from local storage!');
+                    showSyncNotification('✅ Data recovered from local storage!');
+                    return;
+                }
+                
+                // Try to recover from Firebase
+                const teamRef = getTeamDocRef(currentTeamCode);
+                const doc = await teamRef.get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    players = data.players || [];
+                    games = data.games || [];
+                    seasonStats = data.seasonStats || { playerStats: {}, lastUpdated: null };
+                    seasonPlayerStats = data.seasonPlayerStats || { pitchers: {}, batters: {} };
+                    
+                    // Update UI
+                    renderPlayers();
+                    renderGames();
+                    renderSeasonStats();
+                    updateDashboardStats();
+                    
+                    updateSyncStatus('connected', 'Data recovered from cloud!');
+                    showSyncNotification('✅ Data recovered from cloud!');
+                    return;
+                }
+                
+                // If no data found anywhere
+                updateSyncStatus('error', 'No data found to recover');
+                showSyncNotification('❌ No data found in local storage or cloud');
+                
+            } catch (error) {
+                console.error('Data recovery failed:', error);
+                updateSyncStatus('error', 'Data recovery failed');
+                showSyncNotification('❌ Data recovery failed');
+            }
         }
         
         // Team management functions
