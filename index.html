@@ -2709,6 +2709,32 @@
             document.querySelector('.player-form').scrollIntoView({ behavior: 'smooth' });
         }
         
+        async function deletePlayer(playerId) {
+            const player = players.find(p => p.id === playerId);
+            if (!player) return;
+            
+            if (confirm(`Are you sure you want to delete ${player.name}? This will remove them from all games and lineups.`)) {
+                // Remove player from players array
+                players = players.filter(p => p.id !== playerId);
+                
+                // Remove player from all games
+                games.forEach(game => {
+                    game.availablePlayers = game.availablePlayers.filter(id => id !== playerId);
+                });
+                
+                // Save changes
+                await savePlayers();
+                await saveGames();
+                
+                // Update UI
+                renderPlayers();
+                renderGames();
+                updateDashboardStats();
+                
+                console.log(`Player ${player.name} deleted successfully`);
+            }
+        }
+        
         
         function renderPlayers() {
             const playerList = document.getElementById('playerList');
@@ -2729,6 +2755,7 @@
                     </div>
                     <div class="player-actions">
                         <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePlayer(${player.id})" style="background: #dc2626; color: white; margin-left: 8px;">🗑️ Delete</button>
                     </div>
                 `;
                 
