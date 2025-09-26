@@ -1924,6 +1924,9 @@
             // Set up real-time listener for team collaboration
             setupFirebaseListener();
             
+            // Update sync status to show connection
+            updateSyncStatus('connected', 'Connected to cloud');
+            
             // Update the page title to show team
             updatePageTitle();
         }
