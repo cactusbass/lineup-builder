@@ -2215,33 +2215,193 @@
             content.innerHTML = html;
         }
         
-        // Force sync function
+        // Force sync function with smart conflict resolution
         async function forceSync() {
             updateSyncStatus('syncing', 'Force syncing...');
             
             try {
-                // First, save current data to Firebase
-                await saveToFirebase();
+                // First, get the latest data from Firebase
+                const teamRef = getTeamDocRef(currentTeamCode);
+                const doc = await teamRef.get();
                 
-                // Then, reload data from Firebase
-                const loaded = await loadFromFirebase();
-                
-                if (loaded) {
-                    // Update UI with fresh data
+                if (doc.exists) {
+                    const remoteData = doc.data();
+                    const remotePlayers = remoteData.players || [];
+                    const remoteGames = remoteData.games || [];
+                    const remoteSeasonStats = remoteData.seasonStats || { playerStats: {}, lastUpdated: null };
+                    const remoteSeasonPlayerStats = remoteData.seasonPlayerStats || { pitchers: {}, batters: {} };
+                    const remoteLastUpdated = remoteData.lastUpdated;
+                    
+                    // Get local last updated time
+                    const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
+                    
+                    console.log('Sync conflict check:', {
+                        remoteLastUpdated: remoteLastUpdated,
+                        localLastUpdated: localLastUpdated,
+                        localPlayers: players.length,
+                        remotePlayers: remotePlayers.length
+                    });
+                    
+                    // Smart merge: combine data instead of overwriting
+                    const mergedPlayers = mergePlayers(players, remotePlayers);
+                    const mergedGames = mergeGames(games, remoteGames);
+                    const mergedSeasonStats = mergeSeasonStats(seasonStats, remoteSeasonStats);
+                    const mergedSeasonPlayerStats = mergeSeasonPlayerStats(seasonPlayerStats, remoteSeasonPlayerStats);
+                    
+                    // Update local data with merged results
+                    players = mergedPlayers;
+                    games = mergedGames;
+                    seasonStats = mergedSeasonStats;
+                    seasonPlayerStats = mergedSeasonPlayerStats;
+                    
+                    // Save merged data back to Firebase
+                    await saveToFirebase();
+                    
+                    // Update UI
                     renderPlayers();
                     renderGames();
                     renderSeasonStats();
                     updateDashboardStats();
                     
-                    updateSyncStatus('connected', 'Force sync complete!');
-                    showSyncNotification('Data synced successfully!');
+                    updateSyncStatus('connected', 'Smart sync complete!');
+                    showSyncNotification('Data merged and synced successfully!');
                 } else {
-                    updateSyncStatus('error', 'Force sync failed');
+                    // No remote data, just save local data
+                    await saveToFirebase();
+                    updateSyncStatus('connected', 'Data saved to cloud!');
+                    showSyncNotification('Data saved to cloud!');
                 }
             } catch (error) {
                 console.error('Force sync error:', error);
                 updateSyncStatus('error', 'Force sync failed');
             }
+        }
+        
+        // Smart merge functions to prevent data loss
+        function mergePlayers(localPlayers, remotePlayers) {
+            const merged = [...localPlayers];
+            const localIds = new Set(localPlayers.map(p => p.id));
+            
+            // Add any remote players that don't exist locally
+            remotePlayers.forEach(remotePlayer => {
+                if (!localIds.has(remotePlayer.id)) {
+                    merged.push(remotePlayer);
+                    console.log('Added remote player:', remotePlayer.name);
+                } else {
+                    // Update existing player with most recent data
+                    const localIndex = merged.findIndex(p => p.id === remotePlayer.id);
+                    if (remotePlayer.updatedAt > merged[localIndex].updatedAt) {
+                        merged[localIndex] = remotePlayer;
+                        console.log('Updated player from remote:', remotePlayer.name);
+                    }
+                }
+            });
+            
+            return merged;
+        }
+        
+        function mergeGames(localGames, remoteGames) {
+            const merged = [...localGames];
+            const localIds = new Set(localGames.map(g => g.id));
+            
+            // Add any remote games that don't exist locally
+            remoteGames.forEach(remoteGame => {
+                if (!localIds.has(remoteGame.id)) {
+                    merged.push(remoteGame);
+                    console.log('Added remote game:', remoteGame.opponent);
+                } else {
+                    // Update existing game with most recent data
+                    const localIndex = merged.findIndex(g => g.id === remoteGame.id);
+                    if (remoteGame.updatedAt > merged[localIndex].updatedAt) {
+                        merged[localIndex] = remoteGame;
+                        console.log('Updated game from remote:', remoteGame.opponent);
+                    }
+                }
+            });
+            
+            return merged;
+        }
+        
+        function mergeSeasonStats(localStats, remoteStats) {
+            // Merge player stats, keeping the higher values (more games played)
+            const merged = { playerStats: {}, lastUpdated: null };
+            
+            // Combine all player IDs
+            const allPlayerIds = new Set([
+                ...Object.keys(localStats.playerStats || {}),
+                ...Object.keys(remoteStats.playerStats || {})
+            ]);
+            
+            allPlayerIds.forEach(playerId => {
+                const localPlayerStats = localStats.playerStats[playerId] || {};
+                const remotePlayerStats = remoteStats.playerStats[playerId] || {};
+                
+                // Keep the higher values for each stat
+                merged.playerStats[playerId] = {
+                    gamesPlayed: Math.max(localPlayerStats.gamesPlayed || 0, remotePlayerStats.gamesPlayed || 0),
+                    totalInnings: Math.max(localPlayerStats.totalInnings || 0, remotePlayerStats.totalInnings || 0),
+                    benchInnings: Math.max(localPlayerStats.benchInnings || 0, remotePlayerStats.benchInnings || 0),
+                    infieldInnings: Math.max(localPlayerStats.infieldInnings || 0, remotePlayerStats.infieldInnings || 0),
+                    outfieldInnings: Math.max(localPlayerStats.outfieldInnings || 0, remotePlayerStats.outfieldInnings || 0),
+                    pitchingInnings: Math.max(localPlayerStats.pitchingInnings || 0, remotePlayerStats.pitchingInnings || 0),
+                    catchingInnings: Math.max(localPlayerStats.catchingInnings || 0, remotePlayerStats.catchingInnings || 0)
+                };
+            });
+            
+            return merged;
+        }
+        
+        function mergeSeasonPlayerStats(localStats, remoteStats) {
+            const merged = { pitchers: {}, batters: {} };
+            
+            // Merge pitcher stats
+            const allPitcherIds = new Set([
+                ...Object.keys(localStats.pitchers || {}),
+                ...Object.keys(remoteStats.pitchers || {})
+            ]);
+            
+            allPitcherIds.forEach(playerId => {
+                const localPitcherStats = localStats.pitchers[playerId] || {};
+                const remotePitcherStats = remoteStats.pitchers[playerId] || {};
+                
+                merged.pitchers[playerId] = {
+                    totalPitches: Math.max(localPitcherStats.totalPitches || 0, remotePitcherStats.totalPitches || 0),
+                    strikes: Math.max(localPitcherStats.strikes || 0, remotePitcherStats.strikes || 0),
+                    balls: Math.max(localPitcherStats.balls || 0, remotePitcherStats.balls || 0),
+                    hitsAllowed: Math.max(localPitcherStats.hitsAllowed || 0, remotePitcherStats.hitsAllowed || 0),
+                    runsAllowed: Math.max(localPitcherStats.runsAllowed || 0, remotePitcherStats.runsAllowed || 0),
+                    strikeouts: Math.max(localPitcherStats.strikeouts || 0, remotePitcherStats.strikeouts || 0),
+                    walks: Math.max(localPitcherStats.walks || 0, remotePitcherStats.walks || 0),
+                    inningsPitched: Math.max(localPitcherStats.inningsPitched || 0, remotePitcherStats.inningsPitched || 0)
+                };
+            });
+            
+            // Merge batter stats
+            const allBatterIds = new Set([
+                ...Object.keys(localStats.batters || {}),
+                ...Object.keys(remoteStats.batters || {})
+            ]);
+            
+            allBatterIds.forEach(playerId => {
+                const localBatterStats = localStats.batters[playerId] || {};
+                const remoteBatterStats = remoteStats.batters[playerId] || {};
+                
+                merged.batters[playerId] = {
+                    atBats: Math.max(localBatterStats.atBats || 0, remoteBatterStats.atBats || 0),
+                    hits: Math.max(localBatterStats.hits || 0, remoteBatterStats.hits || 0),
+                    singles: Math.max(localBatterStats.singles || 0, remoteBatterStats.singles || 0),
+                    doubles: Math.max(localBatterStats.doubles || 0, remoteBatterStats.doubles || 0),
+                    triples: Math.max(localBatterStats.triples || 0, remoteBatterStats.triples || 0),
+                    homeRuns: Math.max(localBatterStats.homeRuns || 0, remoteBatterStats.homeRuns || 0),
+                    strikeouts: Math.max(localBatterStats.strikeouts || 0, remoteBatterStats.strikeouts || 0),
+                    walks: Math.max(localBatterStats.walks || 0, remoteBatterStats.walks || 0),
+                    stolenBases: Math.max(localBatterStats.stolenBases || 0, remoteBatterStats.stolenBases || 0),
+                    rbi: Math.max(localBatterStats.rbi || 0, remoteBatterStats.rbi || 0),
+                    runs: Math.max(localBatterStats.runs || 0, remoteBatterStats.runs || 0)
+                };
+            });
+            
+            return merged;
         }
         
         // Team management functions
