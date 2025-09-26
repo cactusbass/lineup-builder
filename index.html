@@ -947,6 +947,9 @@
                     <button class="btn" onclick="importTeamData()" style="background: #3b82f6; color: white; border: 2px solid #3b82f6;">
                         📥 Import Team Data
                     </button>
+                    <button class="btn" onclick="forceSync()" style="background: #f59e0b; color: white; border: 2px solid #f59e0b;">
+                        🔄 Force Sync Now
+                    </button>
                 </div>
                 
                 <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 14px;">
@@ -1925,6 +1928,7 @@
                     players: players,
                     games: games,
                     seasonStats: seasonStats,
+                    seasonPlayerStats: seasonPlayerStats,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedBy: 'coach' // In a real app, this would be the user ID
                 };
@@ -1951,6 +1955,7 @@
                     players = data.players || [];
                     games = data.games || [];
                     seasonStats = data.seasonStats || { playerStats: {}, lastUpdated: null };
+                    seasonPlayerStats = data.seasonPlayerStats || { pitchers: {}, batters: {} };
                     
                     console.log('Data loaded from Firebase successfully');
                     updateSyncStatus('connected', 'Connected to cloud');
@@ -1978,16 +1983,19 @@
                         const remotePlayers = data.players || [];
                         const remoteGames = data.games || [];
                         const remoteSeasonStats = data.seasonStats || { playerStats: {}, lastUpdated: null };
+                        const remoteSeasonPlayerStats = data.seasonPlayerStats || { pitchers: {}, batters: {} };
                         
                         console.log('Remote data received:', { 
                             players: remotePlayers.length, 
-                            games: remoteGames.length 
+                            games: remoteGames.length,
+                            seasonPlayerStats: Object.keys(remoteSeasonPlayerStats.pitchers).length + ' pitchers, ' + Object.keys(remoteSeasonPlayerStats.batters).length + ' batters'
                         });
                         
                         // Always update local data from cloud (simplified logic)
                         players = remotePlayers;
                         games = remoteGames;
                         seasonStats = remoteSeasonStats;
+                        seasonPlayerStats = remoteSeasonPlayerStats;
                         
                         // Update UI
                         renderPlayers();
@@ -2003,6 +2011,31 @@
                         console.log('No document found in Firebase for team:', currentTeamCode);
                     }
                 });
+                
+                // Set up periodic sync check every 30 seconds as backup
+                setInterval(async () => {
+                    try {
+                        const teamRef = getTeamDocRef(currentTeamCode);
+                        const doc = await teamRef.get();
+                        if (doc.exists) {
+                            const data = doc.data();
+                            const remoteLastUpdated = data.lastUpdated;
+                            const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
+                            
+                            // If remote is newer, force a sync
+                            if (remoteLastUpdated && (!localLastUpdated || remoteLastUpdated > new Date(localLastUpdated))) {
+                                console.log('Periodic sync check: remote data is newer, syncing...');
+                                await loadFromFirebase();
+                                renderPlayers();
+                                renderGames();
+                                renderSeasonStats();
+                                updateDashboardStats();
+                            }
+                        }
+                    } catch (error) {
+                        console.log('Periodic sync check failed:', error);
+                    }
+                }, 30000); // Check every 30 seconds
                 
                 console.log('Firebase real-time listener set up');
             } catch (error) {
@@ -2180,6 +2213,35 @@
             }
             
             content.innerHTML = html;
+        }
+        
+        // Force sync function
+        async function forceSync() {
+            updateSyncStatus('syncing', 'Force syncing...');
+            
+            try {
+                // First, save current data to Firebase
+                await saveToFirebase();
+                
+                // Then, reload data from Firebase
+                const loaded = await loadFromFirebase();
+                
+                if (loaded) {
+                    // Update UI with fresh data
+                    renderPlayers();
+                    renderGames();
+                    renderSeasonStats();
+                    updateDashboardStats();
+                    
+                    updateSyncStatus('connected', 'Force sync complete!');
+                    showSyncNotification('Data synced successfully!');
+                } else {
+                    updateSyncStatus('error', 'Force sync failed');
+                }
+            } catch (error) {
+                console.error('Force sync error:', error);
+                updateSyncStatus('error', 'Force sync failed');
+            }
         }
         
         // Team management functions
