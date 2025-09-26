@@ -3441,12 +3441,32 @@
                 return;
             }
             
-            // Get available players for this game
+            // Get available players for this game (filter out any invalid player IDs)
             const availablePlayers = players.filter(p => 
                 currentBattingGame.availablePlayers.includes(p.id)
             );
-            // Load existing batting order or initialize empty with correct number of slots
+            
+            // Clean up the game's availablePlayers array to remove any invalid player IDs
+            const originalLength = currentBattingGame.availablePlayers.length;
+            currentBattingGame.availablePlayers = currentBattingGame.availablePlayers.filter(playerId => 
+                players.some(p => p.id === playerId)
+            );
+            
+            // If we cleaned up invalid player IDs, save the game
+            if (currentBattingGame.availablePlayers.length !== originalLength) {
+                console.log(`Cleaned up ${originalLength - currentBattingGame.availablePlayers.length} invalid player IDs from game`);
+                saveGames(); // Save the cleaned up game data
+            }
+            
+            // Load existing batting order or initialize empty with correct number of slots                                                                
             const numSlots = availablePlayers.length;
+            
+            console.log('Batting order debug:', {
+                gameAvailablePlayers: currentBattingGame.availablePlayers.length,
+                validPlayers: availablePlayers.length,
+                numSlots: numSlots,
+                playerNames: availablePlayers.map(p => p.name)
+            });
             
             // Only reset batting order if it's empty or wrong length
             if (!battingOrder || battingOrder.length !== numSlots) {
