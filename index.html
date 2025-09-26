@@ -1923,6 +1923,20 @@
             return db.collection('teams').doc(teamCode);
         }
         
+        async function getRemoteData() {
+            try {
+                const teamRef = getTeamDocRef(currentTeamCode);
+                const doc = await teamRef.get();
+                if (doc.exists) {
+                    return doc.data();
+                }
+                return null;
+            } catch (error) {
+                console.error('Error getting remote data:', error);
+                return null;
+            }
+        }
+        
         async function saveToFirebase() {
             try {
                 const teamRef = getTeamDocRef(currentTeamCode);
@@ -1994,22 +2008,27 @@
                             seasonPlayerStats: Object.keys(remoteSeasonPlayerStats.pitchers).length + ' pitchers, ' + Object.keys(remoteSeasonPlayerStats.batters).length + ' batters'
                         });
                         
-                        // Always update local data from cloud (simplified logic)
-                        players = remotePlayers;
-                        games = remoteGames;
-                        seasonStats = remoteSeasonStats;
-                        seasonPlayerStats = remoteSeasonPlayerStats;
-                        
-                        // Update UI
-                        renderPlayers();
-                        renderGames();
-                        renderSeasonStats();
-                        updateDashboardStats();
-                        
-                        console.log('Data synced from cloud in real-time');
-                        
-                        // Show notification
-                        showSyncNotification('Data updated from cloud!');
+                        // Only update if remote data has actual content
+                        if (remotePlayers.length > 0 || remoteGames.length > 0) {
+                            // Smart merge instead of overwrite
+                            players = mergePlayers(players, remotePlayers);
+                            games = mergeGames(games, remoteGames);
+                            seasonStats = mergeSeasonStats(seasonStats, remoteSeasonStats);
+                            seasonPlayerStats = mergeSeasonPlayerStats(seasonPlayerStats, remoteSeasonPlayerStats);
+                            
+                            // Update UI
+                            renderPlayers();
+                            renderGames();
+                            renderSeasonStats();
+                            updateDashboardStats();
+                            
+                            console.log('Data merged from cloud in real-time');
+                            
+                            // Show notification
+                            showSyncNotification('Data updated from cloud!');
+                        } else {
+                            console.log('Remote data is empty, keeping local data');
+                        }
                     } else {
                         console.log('No document found in Firebase for team:', currentTeamCode);
                     }
@@ -2523,18 +2542,37 @@
                 }
             }
             
-            // Try to load from Firebase first
+            // Load from localStorage first to show data immediately
+            loadPlayers();
+            loadGames();
+            loadSeasonStats();
+            loadSeasonPlayerStats();
+            
+            // Update UI with local data first
+            renderPlayers();
+            renderGames();
+            renderSeasonStats();
+            updateDashboardStats();
+            
+            // Then try to load from Firebase in background
             const firebaseLoaded = await loadFromFirebase();
             
-            if (!firebaseLoaded) {
-                // Fallback to localStorage if Firebase fails
-                loadPlayers();
-                loadGames();
-                loadSeasonStats();
+            if (firebaseLoaded) {
+                // Only update UI if Firebase has more recent data
+                const remoteData = await getRemoteData();
+                if (remoteData && remoteData.lastUpdated) {
+                    const localLastUpdated = localStorage.getItem(getStorageKey('lastUpdated'));
+                    if (!localLastUpdated || remoteData.lastUpdated > new Date(localLastUpdated)) {
+                        console.log('Firebase has newer data, updating UI');
+                        renderPlayers();
+                        renderGames();
+                        renderSeasonStats();
+                        updateDashboardStats();
+                    } else {
+                        console.log('Local data is newer, keeping local data');
+                    }
+                }
             }
-            
-            // Load season player stats
-            loadSeasonPlayerStats();
             
             // Set up real-time listener for team collaboration
             setupFirebaseListener();
