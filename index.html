@@ -4805,17 +4805,11 @@
                 return;
             }
             
-            // Get available players for this game
-            const availablePlayers = players.filter(p => game.availablePlayers.includes(p.id));
+            console.log('Displaying saved lineup for game:', gameId);
+            console.log('Saved lineup data:', game.generatedLineup.innings);
             
-            // Temporarily replace the global lineup with the saved one
-            const originalLineup = lineup;
-            lineup = game.generatedLineup.innings;
-            
-            // Generate the lineup HTML using the same function
-            console.log('Generating lineup HTML for saved lineup...');
-            const lineupHTML = generateSmartLineup(availablePlayers, gameId);
-            console.log('Generated lineup HTML:', lineupHTML);
+            // Display the saved lineup directly without regenerating
+            const lineupHTML = displaySavedLineup(game.generatedLineup.innings, game.availablePlayers);
             
             // Update the lineup display in the current view
             const lineupDisplay = document.getElementById('lineup-display');
@@ -4826,11 +4820,36 @@
             } else {
                 console.log('Lineup display element not found!');
             }
+        }
+        
+        function displaySavedLineup(savedInnings, availablePlayerIds) {
+            if (!savedInnings || savedInnings.length === 0) {
+                return '<p style="color: #6b7280;">No lineup data found.</p>';
+            }
             
-            // Restore original lineup after a delay to allow viewing
-            setTimeout(() => {
-                lineup = originalLineup;
-            }, 100);
+            let html = '<div class="lineup-container">';
+            html += '<h4 style="margin-bottom: 15px; color: #0C2340; font-family: \'Orbitron\', sans-serif;">Defensive Lineup</h4>';
+            
+            savedInnings.forEach((inning, index) => {
+                html += `<div class="inning-lineup" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">`;
+                html += `<h5 style="margin: 0 0 10px 0; color: #BD3039; font-family: 'Orbitron', sans-serif;">Inning ${index + 1}</h5>`;
+                html += `<div class="positions-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">`;
+                
+                // Display each position and player
+                Object.entries(inning).forEach(([position, playerName]) => {
+                    if (position !== 'timestamp') {
+                        html += `<div class="position-card" style="padding: 8px; background: white; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;">`;
+                        html += `<div style="font-weight: bold; color: #374151; font-size: 12px;">${position}</div>`;
+                        html += `<div style="color: #0C2340; font-weight: 600; margin-top: 4px;">${playerName}</div>`;
+                        html += `</div>`;
+                    }
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            html += '</div>';
+            return html;
         }
         
         function clearSavedLineupNote() {
