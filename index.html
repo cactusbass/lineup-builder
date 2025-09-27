@@ -3423,13 +3423,27 @@
             
             if (editingPlayerId) {
                 // Editing existing player
+                console.log('Updating player with ID:', editingPlayerId);
                 const playerIndex = players.findIndex(p => p.id === editingPlayerId);
+                console.log('Found player at index:', playerIndex);
+                
                 if (playerIndex !== -1) {
+                    const oldPlayer = players[playerIndex];
+                    console.log('Old player:', oldPlayer);
+                    
                     players[playerIndex] = {
                         id: editingPlayerId,
                         name: name,
-                        availablePositions: availablePositions
+                        availablePositions: availablePositions,
+                        createdAt: oldPlayer.createdAt, // Preserve creation date
+                        updatedAt: new Date().toISOString() // Add update timestamp
                     };
+                    
+                    console.log('New player:', players[playerIndex]);
+                } else {
+                    console.error('Player not found for editing!');
+                    alert('Error: Player not found for editing');
+                    return;
                 }
                 editingPlayerId = null;
             } else {
@@ -3457,12 +3471,16 @@
             
             // Reset button text and editing state
             editingPlayerId = null;
-            document.getElementById('addEditButton').textContent = 'Add Player';
+            const button = document.getElementById('addEditButton');
+            button.textContent = 'Add Player';
+            button.onclick = function() { addPlayer(); }; // Ensure onclick is set
         }
         
         function editPlayer(playerId) {
             const player = players.find(p => p.id === playerId);
             if (!player) return;
+            
+            console.log('Editing player:', player.name, 'ID:', playerId);
             
             // Set editing state
             editingPlayerId = playerId;
@@ -3475,8 +3493,10 @@
                 document.getElementById(`pos-${pos}`).checked = player.availablePositions.includes(pos);
             });
             
-            // Change button text
-            document.getElementById('addEditButton').textContent = 'Update Player';
+            // Change button text and onclick
+            const button = document.getElementById('addEditButton');
+            button.textContent = 'Update Player';
+            button.onclick = function() { addPlayer(); }; // Ensure it calls addPlayer
             
             // Scroll to form
             document.querySelector('.player-form').scrollIntoView({ behavior: 'smooth' });
