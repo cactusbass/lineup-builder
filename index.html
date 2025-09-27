@@ -3725,6 +3725,7 @@
             
             // Initialize usage tracking
             const pitcherUsage = {};
+            const catcherUsage = {};
             const playerUsage = {};
             const infieldUsage = {};
             const outfieldUsage = {};
@@ -3746,6 +3747,9 @@
                 });
                 if (player.availablePositions.includes('P')) {
                     pitcherUsage[player.id] = 0;
+                }
+                if (player.availablePositions.includes('C')) {
+                    catcherUsage[player.id] = 0;
                 }
                 lastCatcherInning[player.id] = 0;
             });
@@ -3844,10 +3848,27 @@
                                 }
                             }
                         } else if (pos === 'C') {
-                            // For catcher, rotate through available catchers, but consider infield balance
+                            // For catcher, ensure no consecutive innings and rotate through available catchers
                             const availableCatchers = availableForPos.filter(p => p.availablePositions.includes('C'));
-                            const catcherIndex = (inning - 1) % availableCatchers.length;
-                            selectedPlayer = availableCatchers[catcherIndex];
+                            
+                            // Find catchers who haven't caught consecutive innings
+                            const lastInningCatcher = lineup[inning - 2] ? lineup[inning - 2]['C'] : null;
+                            const nonConsecutiveCatchers = availableCatchers.filter(p => 
+                                p.name !== lastInningCatcher && 
+                                (catcherUsage[p.id] || 0) < 2 // Haven't reached 2 innings yet
+                            );
+                            
+                            if (nonConsecutiveCatchers.length > 0) {
+                                // Use a catcher who didn't catch last inning
+                                selectedPlayer = nonConsecutiveCatchers[0];
+                                console.log(`Using non-consecutive catcher: ${selectedPlayer.name} (inning ${inning})`);
+                            } else {
+                                // Fallback: use any available catcher with lowest usage
+                                selectedPlayer = availableCatchers.reduce((best, current) => {
+                                    return (catcherUsage[current.id] || 0) < (catcherUsage[best.id] || 0) ? current : best;
+                                });
+                                console.log(`Using fallback catcher: ${selectedPlayer.name} (inning ${inning})`);
+                            }
                         } else if (infieldPositions.includes(pos) || pos === 'P' || pos === 'C') {
                             // For infield positions (including P and C), prioritize players with lower infield usage
                             selectedPlayer = availableForPos.reduce((best, current) => {
@@ -3887,6 +3908,7 @@
                             pitcherUsage[selectedPlayer.id]++;
                             infieldUsage[selectedPlayer.id]++; // P counts as infield
                         } else if (pos === 'C') {
+                            catcherUsage[selectedPlayer.id]++; // Track catcher usage
                             infieldUsage[selectedPlayer.id]++; // C counts as infield
                         } else if (infieldPositions.includes(pos)) {
                             infieldUsage[selectedPlayer.id]++;
