@@ -5152,7 +5152,7 @@
             let errorCount = 0;
             const results = [];
             
-            futureGames.forEach(game => {
+            for (const game of futureGames) {
                 try {
                     console.log(`Generating lineup for game vs ${game.opponent}`);
                     
@@ -5174,7 +5174,7 @@
                     errorCount++;
                     results.push(`❌ vs ${game.opponent} - Error: ${error.message}`);
                 }
-            });
+            }
             
             // Show results
             const resultMessage = `Future Lineup Generation Complete!\n\n✅ Success: ${successCount} games\n❌ Errors: ${errorCount} games\n\n${results.join('\n')}`;
