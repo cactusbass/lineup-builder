@@ -4776,7 +4776,16 @@
             updateSeasonStats(lineup);
             
             // Save games to localStorage
-            saveGames();
+            await saveGames();
+            console.log('Games saved to localStorage');
+            
+            // Verify the lineup was saved
+            const savedGame = games.find(g => g.id === gameId);
+            if (savedGame && savedGame.generatedLineup) {
+                console.log('✅ Lineup successfully saved and verified');
+            } else {
+                console.error('❌ Lineup save verification failed');
+            }
             
             // Restore original players array
             players = originalPlayers;
