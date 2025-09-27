@@ -3858,8 +3858,6 @@
                                 availableCatchers = availableForPos; // Allow any available player
                             }
                             
-                            console.log(`Available catchers for inning ${inning}:`, availableCatchers.map(p => `${p.name} (usage: ${catcherUsage[p.id] || 0})`));
-                            
                             // Find catchers who haven't caught consecutive innings
                             const lastInningCatcher = lineup[inning - 2] ? lineup[inning - 2]['C'] : null;
                             const nonConsecutiveCatchers = availableCatchers.filter(p => 
@@ -3867,18 +3865,23 @@
                                 (catcherUsage[p.id] || 0) < 2 // Haven't reached 2 innings yet
                             );
                             
-                            console.log(`Last inning catcher: ${lastInningCatcher}, Non-consecutive catchers:`, nonConsecutiveCatchers.map(p => p.name));
-                            
                             if (nonConsecutiveCatchers.length > 0) {
                                 // Use a catcher who didn't catch last inning
                                 selectedPlayer = nonConsecutiveCatchers[0];
                                 console.log(`Using non-consecutive catcher: ${selectedPlayer.name} (inning ${inning})`);
                             } else {
-                                // Fallback: use any available catcher with lowest usage
-                                selectedPlayer = availableCatchers.reduce((best, current) => {
-                                    return (catcherUsage[current.id] || 0) < (catcherUsage[best.id] || 0) ? current : best;
-                                });
-                                console.log(`Using fallback catcher: ${selectedPlayer.name} (inning ${inning})`);
+                                // Improved fallback: prioritize catchers who haven't caught at all, then lowest usage
+                                const unusedCatchers = availableCatchers.filter(p => (catcherUsage[p.id] || 0) === 0);
+                                if (unusedCatchers.length > 0) {
+                                    selectedPlayer = unusedCatchers[0];
+                                    console.log(`Using unused catcher: ${selectedPlayer.name} (inning ${inning})`);
+                                } else {
+                                    // Last resort: use any available catcher with lowest usage
+                                    selectedPlayer = availableCatchers.reduce((best, current) => {
+                                        return (catcherUsage[current.id] || 0) < (catcherUsage[best.id] || 0) ? current : best;
+                                    });
+                                    console.log(`Using fallback catcher: ${selectedPlayer.name} (inning ${inning})`);
+                                }
                             }
                         } else if (infieldPositions.includes(pos) || pos === 'P' || pos === 'C') {
                             // For infield positions (including P and C), prioritize players with lower infield usage
