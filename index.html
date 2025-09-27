@@ -4827,28 +4827,30 @@
                 return '<p style="color: #6b7280;">No lineup data found.</p>';
             }
             
-            let html = '<div class="lineup-container">';
-            html += '<h4 style="margin-bottom: 15px; color: #0C2340; font-family: \'Orbitron\', sans-serif;">Defensive Lineup</h4>';
+            // Get the opponent name from the current game
+            const game = games.find(g => g.id === currentGameDetail?.id);
+            const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
+            const innings = savedInnings.length;
+            
+            let html = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
             
             savedInnings.forEach((inning, index) => {
-                html += `<div class="inning-lineup" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">`;
-                html += `<h5 style="margin: 0 0 10px 0; color: #BD3039; font-family: 'Orbitron', sans-serif;">Inning ${index + 1}</h5>`;
-                html += `<div class="positions-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">`;
+                html += `<div class="inning"><h4>Inning ${index + 1}</h4>`;
+                html += '<div class="lineup-section">';
+                html += '<h5>Fielding:</h5>';
                 
-                // Display each position and player
-                Object.entries(inning).forEach(([position, playerName]) => {
-                    if (position !== 'timestamp') {
-                        html += `<div class="position-card" style="padding: 8px; background: white; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;">`;
-                        html += `<div style="font-weight: bold; color: #374151; font-size: 12px;">${position}</div>`;
-                        html += `<div style="color: #0C2340; font-weight: 600; margin-top: 4px;">${playerName}</div>`;
-                        html += `</div>`;
+                // Display positions in the same order as the original
+                const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
+                positions.forEach(pos => {
+                    if (inning[pos]) {
+                        html += `<div class="position-row"><span class="position">${pos}</span><span class="player">${inning[pos]}</span></div>`;
                     }
                 });
                 
-                html += `</div></div>`;
+                html += '</div>';
+                html += '</div>';
             });
             
-            html += '</div>';
             return html;
         }
         
