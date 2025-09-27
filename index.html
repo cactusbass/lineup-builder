@@ -3849,7 +3849,13 @@
                             }
                         } else if (pos === 'C') {
                             // For catcher, ensure no consecutive innings and rotate through available catchers
-                            const availableCatchers = availableForPos.filter(p => p.availablePositions.includes('C'));
+                            let availableCatchers = availableForPos.filter(p => p.availablePositions.includes('C'));
+                            
+                            // If we don't have enough designated catchers, allow any player to catch
+                            if (availableCatchers.length < 3) {
+                                console.log(`Only ${availableCatchers.length} designated catchers available, allowing any player to catch`);
+                                availableCatchers = availableForPos; // Allow any available player
+                            }
                             
                             // Find catchers who haven't caught consecutive innings
                             const lastInningCatcher = lineup[inning - 2] ? lineup[inning - 2]['C'] : null;
