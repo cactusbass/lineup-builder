@@ -14,7 +14,7 @@
     
     <!-- Firebase Configuration -->
     <script>
-        // Firebase configuration (real project)
+        // Firebase configuration (real project) - Cache bust: 2025-09-27-03-45
         const firebaseConfig = {
             apiKey: "AIzaSyDJ275KTXKrczLuG0GsbMsTtOhSLAHZalU",
             authDomain: "lineup-builder-8aed6.firebaseapp.com",
@@ -3138,7 +3138,7 @@
         }
         
         // Fast QA Test function
-        function runFastQATest() {
+        async function runFastQATest() {
             console.log('=== FAST QA TEST STARTING ===');
             
             // Test 1: Check basic setup
@@ -3177,7 +3177,7 @@
             
             try {
                 // Generate lineup
-                generateLineupForGame(testGame.id);
+                await generateLineupForGame(testGame.id);
                 console.log('✅ Lineup generated successfully');
                 
                 // Test 4: Check season stats
@@ -3658,7 +3658,7 @@
             }
             
             // Simple lineup generation algorithm
-            const lineup = generateSmartLineup();
+            const lineup = generateSmartLineup(players, 'default');
             
             // If we're in game detail view, update the lineup display there
             if (currentGameDetail) {
@@ -3671,7 +3671,7 @@
             return lineup;
         }
         
-        function generateSmartLineup() {
+        function generateSmartLineup(gamePlayers, gameId) {
             console.log('=== generateSmartLineup START ===');
             const innings = 6;
             
@@ -3680,12 +3680,13 @@
             console.log('Initialized lineup array:', lineup);
             
             // Get the opponent name from the current game or use a default
-            const opponentName = currentGameDetail ? currentGameDetail.opponent : 'Opponent';
+            const game = games.find(g => g.id === gameId);
+            const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
             console.log('Opponent name:', opponentName);
             let lineupHTML = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
             
-            // Shuffle the players array to randomize selection order
-            const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+            // Use the provided gamePlayers instead of global players array
+            const shuffledPlayers = [...gamePlayers].sort(() => Math.random() - 0.5);
             const numPlayers = shuffledPlayers.length;
             
             // Determine positions based on number of players
@@ -3944,8 +3945,8 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
             `;
             
-            // Use original players array for summary display (not shuffled)
-            players.forEach(player => {
+            // Use game players for summary display (not shuffled)
+            gamePlayers.forEach(player => {
                 // Count actual innings played and bench time
                 const actualInningsPlayed = playerUsage[player.id];
                 const actualBenchTime = benchUsage[player.id] || 0;
@@ -4266,7 +4267,7 @@
             });
         }
         
-        function generateQuickLineup() {
+        async function generateQuickLineup() {
             const selectedGameId = document.getElementById('quickGameSelect').value;
             
             if (selectedGameId === 'all') {
@@ -4274,7 +4275,7 @@
                 generateLineup();
             } else {
                 // Generate lineup for specific game
-                generateLineupForGame(parseInt(selectedGameId));
+                await generateLineupForGame(parseInt(selectedGameId));
             }
             
             // Switch to lineup tab to show results
@@ -4708,7 +4709,7 @@
             }
         }
         
-        function generateLineupForGame(gameId) {
+        async function generateLineupForGame(gameId) {
             console.log('generateLineupForGame called with gameId:', gameId);
             const game = games.find(g => g.id === gameId);
             console.log('Found game:', game);
@@ -4739,18 +4740,14 @@
                 return;
             }
             
-            // Temporarily replace the global players array
-            const originalPlayers = players;
-            players = availablePlayers;
-            
-            // Generate lineup
+            // Generate lineup using available players
             console.log('Calling generateSmartLineup...');
-            console.log('Players array before generateSmartLineup:', players);
+            console.log('Available players for lineup:', availablePlayers.length);
             console.log('Current game detail:', currentGameDetail);
             
             let generatedLineup;
             try {
-                generatedLineup = generateSmartLineup();
+                generatedLineup = generateSmartLineup(availablePlayers, gameId);
                 console.log('Generated lineup HTML:', generatedLineup);
                 console.log('Global lineup array:', lineup);
                 
@@ -4787,8 +4784,7 @@
                 console.error('❌ Lineup save verification failed');
             }
             
-            // Restore original players array
-            players = originalPlayers;
+            // No need to restore players array since we didn't modify it
             
             // Update the lineup display in the game detail view
             const lineupDisplay = document.getElementById('lineup-display');
@@ -4809,13 +4805,16 @@
                 return;
             }
             
+            // Get available players for this game
+            const availablePlayers = players.filter(p => game.availablePlayers.includes(p.id));
+            
             // Temporarily replace the global lineup with the saved one
             const originalLineup = lineup;
             lineup = game.generatedLineup.innings;
             
             // Generate the lineup HTML using the same function
             console.log('Generating lineup HTML for saved lineup...');
-            const lineupHTML = generateSmartLineup();
+            const lineupHTML = generateSmartLineup(availablePlayers, gameId);
             console.log('Generated lineup HTML:', lineupHTML);
             
             // Update the lineup display in the current view
@@ -5105,7 +5104,7 @@
         }
         
         // Generate lineups for all future games
-        function generateFutureLineups() {
+        async function generateFutureLineups() {
             console.log('=== GENERATING FUTURE LINEUPS ===');
             
             // Check if we have players
@@ -5162,7 +5161,7 @@
                     currentGameDetail = game;
                     
                     // Generate lineup for this game
-                    generateLineupForGame(game.id);
+                    await generateLineupForGame(game.id);
                     
                     // Restore original game detail
                     currentGameDetail = originalGameDetail;
@@ -5217,7 +5216,7 @@
             `;
         }
         
-        function generateLineupForCurrentGame() {
+        async function generateLineupForCurrentGame() {
             console.log('=== BUTTON CLICKED ===');
             console.log('generateLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
             
@@ -5227,7 +5226,7 @@
                 return;
             }
             console.log('Generating lineup for game ID:', currentGameDetail.id);
-            generateLineupForGame(currentGameDetail.id);
+            await generateLineupForGame(currentGameDetail.id);
         }
         
         function viewSavedLineupForCurrentGame() {
