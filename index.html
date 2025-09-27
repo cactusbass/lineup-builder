@@ -2058,7 +2058,8 @@
             try {
                 const teamRef = getTeamDocRef(currentTeamCode);
                 
-                teamRef.onSnapshot((doc) => {
+                // Store unsubscribe function globally
+                window.firebaseUnsubscribe = teamRef.onSnapshot((doc) => {
                     console.log('Firebase listener triggered, doc exists:', doc.exists);
                     if (doc.exists) {
                         const data = doc.data();
@@ -2116,7 +2117,7 @@
                 });
                 
                 // Set up periodic sync check every 30 seconds as backup
-                setInterval(async () => {
+                window.firebaseInterval = setInterval(async () => {
                     try {
                         const teamRef = getTeamDocRef(currentTeamCode);
                         const doc = await teamRef.get();
@@ -2607,6 +2608,17 @@
                 safeMode = true;
                 localStorage.setItem('lineupBuilder_safeMode', 'true');
                 
+                // Completely disable Firebase
+                if (window.firebaseUnsubscribe) {
+                    window.firebaseUnsubscribe();
+                    console.log('Firebase listener unsubscribed');
+                }
+                
+                if (window.firebaseInterval) {
+                    clearInterval(window.firebaseInterval);
+                    console.log('Firebase interval cleared');
+                }
+                
                 // Reload data from localStorage only
                 loadPlayers();
                 loadGames();
@@ -2718,6 +2730,20 @@
                 // Safe Mode: Skip Firebase entirely
                 updateSyncStatus('connected', 'Safe Mode: Local storage only');
                 console.log('Safe Mode active - Firebase sync disabled');
+                
+                // Completely disable Firebase listeners
+                if (window.firebaseUnsubscribe) {
+                    window.firebaseUnsubscribe();
+                    console.log('Firebase listener unsubscribed');
+                }
+                
+                // Clear any Firebase intervals
+                if (window.firebaseInterval) {
+                    clearInterval(window.firebaseInterval);
+                    console.log('Firebase interval cleared');
+                }
+                
+                return; // Exit early, don't set up Firebase
             } else {
                 // Wait a moment to ensure UI is stable
                 await new Promise(resolve => setTimeout(resolve, 1000));
