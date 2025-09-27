@@ -959,6 +959,9 @@
                     <button class="btn" onclick="resetToDefault()" style="background: #ef4444; color: white; border: 2px solid #ef4444;">
                         🔄 Reset to Default
                     </button>
+                    <button class="btn" onclick="restorePlayers()" style="background: #f59e0b; color: white; border: 2px solid #f59e0b;">
+                        🔄 Restore Players
+                    </button>
                 </div>
                 
                 <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 14px;">
@@ -1389,6 +1392,38 @@
             console.log('Games:', games.length, games);
             console.log('Current Team Code:', currentTeamCode);
             console.log('Local Storage Keys:', Object.keys(localStorage).filter(k => k.includes('lineupBuilder')));
+            
+            // Check for any Firebase listeners still running
+            console.log('Firebase listeners active:', window.firebaseListeners || 'none');
+            
+            // Check localStorage data
+            const localPlayers = localStorage.getItem(getStorageKey('players'));
+            console.log('Local Storage Players:', localPlayers ? JSON.parse(localPlayers).length : 'none');
+            
+            // Check if any functions are modifying players array
+            console.log('Players array reference:', players);
+        }
+        
+        // Add player array protection
+        let originalPlayers = [];
+        function protectPlayerArray() {
+            originalPlayers = [...players];
+            console.log('Protected players array:', originalPlayers.length);
+        }
+        
+        function checkPlayerArray() {
+            if (players.length !== originalPlayers.length) {
+                console.error('🚨 PLAYER ARRAY MODIFIED!');
+                console.error('Original length:', originalPlayers.length);
+                console.error('Current length:', players.length);
+                console.error('Original players:', originalPlayers);
+                console.error('Current players:', players);
+                
+                // Restore from backup
+                players = [...originalPlayers];
+                console.log('Restored players array');
+                renderPlayers();
+            }
         }
         
         // Add emergency debug button
@@ -2613,6 +2648,25 @@
             }
         }
         
+        // Restore players from localStorage
+        function restorePlayers() {
+            try {
+                const localPlayers = localStorage.getItem(getStorageKey('players'));
+                if (localPlayers) {
+                    const restoredPlayers = JSON.parse(localPlayers);
+                    players = restoredPlayers;
+                    renderPlayers();
+                    console.log('Players restored from localStorage:', players.length);
+                    showSyncNotification('✅ Players restored from local storage!');
+                } else {
+                    alert('No player data found in local storage');
+                }
+            } catch (error) {
+                console.error('Error restoring players:', error);
+                alert('Error restoring players: ' + error.message);
+            }
+        }
+        
         // Team management functions
         async function initializeTeam() {
             // Check for Safe Mode first
@@ -3326,7 +3380,13 @@
         async function savePlayers() {
             localStorage.setItem(getStorageKey('players'), JSON.stringify(players));
             if (!safeMode) {
-                await saveToFirebase(); // Also save to cloud
+                try {
+                    await saveToFirebase(); // Also save to cloud
+                } catch (error) {
+                    console.error('Firebase sync failed:', error);
+                    // Don't show error to user, just log it
+                    // Data is still saved locally
+                }
             }
         }
         
@@ -5193,6 +5253,15 @@
                 console.error('Error details:', e.filename, e.lineno, e.colno);
                 alert('JavaScript Error: ' + e.message + '\nCheck console for details.');
             });
+            
+            // Add player protection monitoring
+            setInterval(() => {
+                protectPlayerArray();
+            }, 1000); // Check every second
+            
+            setInterval(() => {
+                checkPlayerArray();
+            }, 2000); // Check for changes every 2 seconds
             
             try {
                 // Initialize team first
