@@ -3857,12 +3857,16 @@
                                 availableCatchers = availableForPos; // Allow any available player
                             }
                             
+                            console.log(`Available catchers for inning ${inning}:`, availableCatchers.map(p => `${p.name} (usage: ${catcherUsage[p.id] || 0})`));
+                            
                             // Find catchers who haven't caught consecutive innings
                             const lastInningCatcher = lineup[inning - 2] ? lineup[inning - 2]['C'] : null;
                             const nonConsecutiveCatchers = availableCatchers.filter(p => 
                                 p.name !== lastInningCatcher && 
                                 (catcherUsage[p.id] || 0) < 2 // Haven't reached 2 innings yet
                             );
+                            
+                            console.log(`Last inning catcher: ${lastInningCatcher}, Non-consecutive catchers:`, nonConsecutiveCatchers.map(p => p.name));
                             
                             if (nonConsecutiveCatchers.length > 0) {
                                 // Use a catcher who didn't catch last inning
