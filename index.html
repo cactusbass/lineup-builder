@@ -3869,6 +3869,7 @@
                                 // Use a catcher who didn't catch last inning
                                 selectedPlayer = nonConsecutiveCatchers[0];
                                 console.log(`Using non-consecutive catcher: ${selectedPlayer.name} (inning ${inning})`);
+                            console.log(`Catcher usage before assignment:`, catcherUsage);
                             } else {
                                 // Improved fallback: prioritize catchers who haven't caught at all, then lowest usage
                                 const unusedCatchers = availableCatchers.filter(p => (catcherUsage[p.id] || 0) === 0);
@@ -3923,6 +3924,7 @@
                             infieldUsage[selectedPlayer.id]++; // P counts as infield
                         } else if (pos === 'C') {
                             catcherUsage[selectedPlayer.id]++; // Track catcher usage
+                            console.log(`Catcher usage after assignment:`, catcherUsage);
                             infieldUsage[selectedPlayer.id]++; // C counts as infield
                         } else if (infieldPositions.includes(pos)) {
                             infieldUsage[selectedPlayer.id]++;
