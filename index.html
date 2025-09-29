@@ -3735,6 +3735,7 @@
             const lastPitcherInning = {};
             const lastCatcherInning = {};
             const lastOutfieldInning = {}; // Track last inning each player played outfield
+            const outfieldPositionUsage = {}; // Track which outfield positions each player has played
             
             shuffledPlayers.forEach(player => {
                 playerUsage[player.id] = 0;
@@ -3743,6 +3744,7 @@
                 benchUsage[player.id] = 0;
                 positionUsage[player.id] = {};
                 lastOutfieldInning[player.id] = 0; // Initialize outfield tracking
+                outfieldPositionUsage[player.id] = { LF: 0, CF: 0, RF: 0 }; // Initialize outfield position tracking
                 positions.forEach(pos => {
                     positionUsage[player.id][pos] = 0;
                 });
@@ -3906,10 +3908,32 @@
                             );
                             
                             if (availableForOutfield.length > 0) {
-                                // Prioritize players with lower outfield usage who haven't played outfield last inning
-                                selectedPlayer = availableForOutfield.reduce((best, current) => {
-                                    return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
-                                });
+                                // Prioritize outfield position variety for players with multiple outfield innings
+                                const playersWithMultipleOutfield = availableForOutfield.filter(p => outfieldUsage[p.id] > 1);
+                                
+                                if (playersWithMultipleOutfield.length > 0) {
+                                    // For players with multiple outfield innings, prioritize those who haven't played this specific position
+                                    const playersNotInThisPosition = playersWithMultipleOutfield.filter(p => 
+                                        outfieldPositionUsage[p.id][pos] === 0
+                                    );
+                                    
+                                    if (playersNotInThisPosition.length > 0) {
+                                        selectedPlayer = playersNotInThisPosition.reduce((best, current) => {
+                                            return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
+                                        });
+                                        console.log(`Using outfield position variety: ${selectedPlayer.name} for ${pos} (outfield innings: ${outfieldUsage[selectedPlayer.id]})`);
+                                    } else {
+                                        // Fallback to lowest outfield usage
+                                        selectedPlayer = availableForOutfield.reduce((best, current) => {
+                                            return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
+                                        });
+                                    }
+                                } else {
+                                    // Normal selection for players with 1 or fewer outfield innings
+                                    selectedPlayer = availableForOutfield.reduce((best, current) => {
+                                        return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
+                                    });
+                                }
                             } else {
                                 // If all players played outfield last inning, fall back to lowest usage
                                 selectedPlayer = availableForPos.reduce((best, current) => {
@@ -3941,6 +3965,7 @@
                         } else if (outfieldPositions.includes(pos)) {
                             outfieldUsage[selectedPlayer.id]++;
                             lastOutfieldInning[selectedPlayer.id] = inning; // Track last outfield inning
+                            outfieldPositionUsage[selectedPlayer.id][pos]++; // Track specific outfield position usage
                         }
                         positionUsage[selectedPlayer.id][pos]++;
                         
