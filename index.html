@@ -5433,11 +5433,14 @@
                     console.log(`Inning ${inning} dropdown value:`, selectedId);
                     
                     if (selectedId) {
-                        if (selectedPitchers[selectedId]) {
-                            duplicates.push(selectedId);
-                        } else {
-                            selectedPitchers[selectedId] = inning;
+                        if (selectedPitchers[inning]) {
+                            // Check if this player is already selected for another inning
+                            const existingInning = Object.keys(selectedPitchers).find(inn => selectedPitchers[inn] == selectedId);
+                            if (existingInning) {
+                                duplicates.push(selectedId);
+                            }
                         }
+                        selectedPitchers[inning] = selectedId;
                     }
                 }
             }
