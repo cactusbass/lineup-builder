@@ -3839,6 +3839,8 @@
                         if (pos === 'P') {
                             // Check for manual pitcher selection first
                             const manualPitcherId = manualPitcherSelections[inning];
+                            console.log(`Inning ${inning} - Manual pitcher ID:`, manualPitcherId);
+                            console.log(`Available pitchers for inning ${inning}:`, availableForPos.map(p => `${p.name} (ID: ${p.id})`));
                             
                             if (manualPitcherId) {
                                 // Use manually selected pitcher
@@ -3850,6 +3852,8 @@
                                     console.log(`Manual pitcher not available for inning ${inning}, falling back to automatic selection`);
                                     // Fall through to automatic selection
                                 }
+                            } else {
+                                console.log(`No manual pitcher selected for inning ${inning}, using automatic selection`);
                             }
                             
                             // If no manual selection or manual pitcher not available, use automatic selection
@@ -5453,6 +5457,11 @@
         async function generateLineupForCurrentGame() {
             console.log('=== BUTTON CLICKED ===');
             console.log('generateLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
+            
+            // Debug manual pitcher selections
+            console.log('Manual pitcher selections:', manualPitcherSelections);
+            const toggle = document.getElementById('manualPitcherToggle');
+            console.log('Manual pitcher toggle checked:', toggle ? toggle.checked : 'toggle not found');
             
             if (!currentGameDetail) {
                 console.log('No currentGameDetail, returning');
