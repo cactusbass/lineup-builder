@@ -3843,13 +3843,13 @@
                             console.log(`Available pitchers for inning ${inning}:`, availableForPos.map(p => `${p.name} (ID: ${p.id})`));
                             
                             if (manualPitcherId) {
-                                // Use manually selected pitcher
-                                const manualPitcher = availableForPos.find(p => p.id == manualPitcherId);
+                                // Use manually selected pitcher - override availability checks
+                                const manualPitcher = gamePlayers.find(p => p.id == manualPitcherId);
                                 if (manualPitcher) {
                                     selectedPlayer = manualPitcher;
-                                    console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning})`);
+                                    console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning}) - overriding availability checks`);
                                 } else {
-                                    console.log(`Manual pitcher not available for inning ${inning}, falling back to automatic selection`);
+                                    console.log(`Manual pitcher ID ${manualPitcherId} not found in game players, falling back to automatic selection`);
                                     // Fall through to automatic selection
                                 }
                             } else {
