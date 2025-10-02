@@ -5428,19 +5428,23 @@
             // Collect all selections
             for (let inning = 1; inning <= 6; inning++) {
                 const select = document.getElementById(`pitcherInning${inning}`);
-                const selectedId = select.value;
-                
-                if (selectedId) {
-                    if (selectedPitchers[selectedId]) {
-                        duplicates.push(selectedId);
-                    } else {
-                        selectedPitchers[selectedId] = inning;
+                if (select) {
+                    const selectedId = select.value;
+                    console.log(`Inning ${inning} dropdown value:`, selectedId);
+                    
+                    if (selectedId) {
+                        if (selectedPitchers[selectedId]) {
+                            duplicates.push(selectedId);
+                        } else {
+                            selectedPitchers[selectedId] = inning;
+                        }
                     }
                 }
             }
             
             // Update global selections
             manualPitcherSelections = selectedPitchers;
+            console.log('Updated manualPitcherSelections:', manualPitcherSelections);
             
             // Show validation message
             if (duplicates.length > 0) {
@@ -5458,9 +5462,15 @@
             console.log('=== BUTTON CLICKED ===');
             console.log('generateLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
             
+            // Update manual pitcher selections before generating lineup
+            const toggle = document.getElementById('manualPitcherToggle');
+            if (toggle && toggle.checked) {
+                console.log('Manual pitcher mode enabled, updating selections...');
+                validatePitcherSelections();
+            }
+            
             // Debug manual pitcher selections
             console.log('Manual pitcher selections:', manualPitcherSelections);
-            const toggle = document.getElementById('manualPitcherToggle');
             console.log('Manual pitcher toggle checked:', toggle ? toggle.checked : 'toggle not found');
             
             if (!currentGameDetail) {
