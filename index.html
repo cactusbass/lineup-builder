@@ -1199,6 +1199,21 @@
                 <div class="card" style="margin-bottom: 20px;">
                     <h3>Defensive Lineup</h3>
                     <p>Generate and manage defensive position rotations for this game.</p>
+                    <!-- Manual Pitcher Selection -->
+                    <div class="manual-pitcher-section" style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                        <label style="display: flex; align-items: center; margin-bottom: 10px; font-weight: bold;">
+                            <input type="checkbox" id="manualPitcherToggle" onchange="toggleManualPitcherSelection()" style="margin-right: 8px;">
+                            Manual Pitcher Selection
+                        </label>
+                        <div id="manualPitcherControls" style="display: none;">
+                            <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">Select pitchers for each inning (leave blank for automatic selection):</p>
+                            <div id="pitcherDropdowns" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                <!-- Pitcher dropdowns will be generated here -->
+                            </div>
+                            <div id="pitcherValidation" style="margin-top: 10px; font-size: 14px;"></div>
+                        </div>
+                    </div>
+                    
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
                         <button class="btn" onclick="console.log('Button clicked!'); generateLineupForCurrentGame();" id="generateLineupBtn" style="background: #BD3039; color: white; border: 2px solid #BD3039; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 1000; position: relative; font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 0.5px;">GENERATE DEFENSIVE LINEUP</button>
                         <button class="btn btn-secondary" onclick="viewSavedLineupForCurrentGame()">View Saved Lineup</button>
@@ -3313,6 +3328,7 @@
         
         // Lineup data
         let lineup = [];
+        let manualPitcherSelections = {}; // Store manual pitcher selections
         
         // Season-long tracking for cumulative balance
         let seasonStats = {
@@ -3821,17 +3837,34 @@
                         
                         // Smart selection based on position type and balance
                         if (pos === 'P') {
-                            // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
-                            const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
+                            // Check for manual pitcher selection first
+                            const manualPitcherId = manualPitcherSelections[inning];
                             
-                            // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
-                            const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
+                            if (manualPitcherId) {
+                                // Use manually selected pitcher
+                                const manualPitcher = availableForPos.find(p => p.id == manualPitcherId);
+                                if (manualPitcher) {
+                                    selectedPlayer = manualPitcher;
+                                    console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning})`);
+                                } else {
+                                    console.log(`Manual pitcher not available for inning ${inning}, falling back to automatic selection`);
+                                    // Fall through to automatic selection
+                                }
+                            }
                             
-                            if (unusedPitchers.length > 0) {
-                                // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
-                                selectedPlayer = unusedPitchers[0];
-                                console.log(`Using new pitcher: ${selectedPlayer.name} (inning ${inning}) - prioritizing 6 different pitchers`);
-                            } else {
+                            // If no manual selection or manual pitcher not available, use automatic selection
+                            if (!selectedPlayer) {
+                                // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
+                                const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
+                                
+                                // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
+                                const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
+                                
+                                if (unusedPitchers.length > 0) {
+                                    // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
+                                    selectedPlayer = unusedPitchers[0];
+                                    console.log(`Using new pitcher: ${selectedPlayer.name} (inning ${inning}) - prioritizing 6 different pitchers`);
+                                } else {
                                 // Second priority: If all pitchers have pitched, then use consecutive innings
                                 const lastInningPitcher = lineup[inning - 2] ? lineup[inning - 2]['P'] : null;
                                 const consecutivePitcher = availablePitchers.find(p => 
@@ -3849,6 +3882,7 @@
                                         return pitcherUsage[current.id] < pitcherUsage[best.id] ? current : best;
                                     });
                                 }
+                            }
                             }
                         } else if (pos === 'C') {
                             // For catcher, ensure no consecutive innings and rotate through available catchers
@@ -5310,6 +5344,112 @@
             `;
         }
         
+        // Manual Pitcher Selection Functions
+        function toggleManualPitcherSelection() {
+            const toggle = document.getElementById('manualPitcherToggle');
+            const controls = document.getElementById('manualPitcherControls');
+            const dropdowns = document.getElementById('pitcherDropdowns');
+            
+            if (toggle.checked) {
+                controls.style.display = 'block';
+                generatePitcherDropdowns();
+            } else {
+                controls.style.display = 'none';
+                manualPitcherSelections = {};
+            }
+        }
+        
+        function generatePitcherDropdowns() {
+            const dropdowns = document.getElementById('pitcherDropdowns');
+            dropdowns.innerHTML = '';
+            
+            // Get available pitchers for current game
+            const availablePitchers = getAvailablePitchersForCurrentGame();
+            
+            // Create dropdowns for 6 innings
+            for (let inning = 1; inning <= 6; inning++) {
+                const inningDiv = document.createElement('div');
+                inningDiv.style.display = 'flex';
+                inningDiv.style.flexDirection = 'column';
+                inningDiv.style.gap = '5px';
+                
+                const label = document.createElement('label');
+                label.textContent = `Inning ${inning}:`;
+                label.style.fontWeight = 'bold';
+                label.style.fontSize = '14px';
+                
+                const select = document.createElement('select');
+                select.id = `pitcherInning${inning}`;
+                select.style.padding = '5px';
+                select.style.border = '1px solid #ccc';
+                select.style.borderRadius = '3px';
+                select.onchange = () => validatePitcherSelections();
+                
+                // Add empty option for automatic selection
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = 'Auto';
+                select.appendChild(emptyOption);
+                
+                // Add pitcher options
+                availablePitchers.forEach(pitcher => {
+                    const option = document.createElement('option');
+                    option.value = pitcher.id;
+                    option.textContent = pitcher.name;
+                    select.appendChild(option);
+                });
+                
+                inningDiv.appendChild(label);
+                inningDiv.appendChild(select);
+                dropdowns.appendChild(inningDiv);
+            }
+        }
+        
+        function getAvailablePitchersForCurrentGame() {
+            if (!currentGameDetail) return [];
+            
+            const availablePlayers = players.filter(p => 
+                currentGameDetail.availablePlayers.includes(p.id) && 
+                p.availablePositions.includes('P')
+            );
+            
+            return availablePlayers;
+        }
+        
+        function validatePitcherSelections() {
+            const validation = document.getElementById('pitcherValidation');
+            const selectedPitchers = {};
+            const duplicates = [];
+            
+            // Collect all selections
+            for (let inning = 1; inning <= 6; inning++) {
+                const select = document.getElementById(`pitcherInning${inning}`);
+                const selectedId = select.value;
+                
+                if (selectedId) {
+                    if (selectedPitchers[selectedId]) {
+                        duplicates.push(selectedId);
+                    } else {
+                        selectedPitchers[selectedId] = inning;
+                    }
+                }
+            }
+            
+            // Update global selections
+            manualPitcherSelections = selectedPitchers;
+            
+            // Show validation message
+            if (duplicates.length > 0) {
+                const duplicateNames = duplicates.map(id => players.find(p => p.id == id)?.name).join(', ');
+                validation.innerHTML = `<span style="color: #dc2626;">⚠️ Warning: ${duplicateNames} selected multiple times</span>`;
+            } else if (Object.keys(selectedPitchers).length > 0) {
+                const selectedCount = Object.keys(selectedPitchers).length;
+                validation.innerHTML = `<span style="color: #059669;">✅ ${selectedCount} pitcher(s) manually selected</span>`;
+            } else {
+                validation.innerHTML = '';
+            }
+        }
+
         async function generateLineupForCurrentGame() {
             console.log('=== BUTTON CLICKED ===');
             console.log('generateLineupForCurrentGame called, currentGameDetail:', currentGameDetail);
