@@ -3753,6 +3753,7 @@
             const lastOutfieldInning = {}; // Track last inning each player played outfield
             const outfieldPositionUsage = {}; // Track which outfield positions each player has played
             const positionHistory = {}; // Track which positions each player has played across all innings
+            const benchHistory = []; // Track which players have been benched to ensure fair rotation
             
             shuffledPlayers.forEach(player => {
                 playerUsage[player.id] = 0;
@@ -3782,28 +3783,77 @@
                 console.log(`Setup: ${numPlayers} players, ${playersPerInning} positions, ${playersToBenchPerInning} players sit each inning`);
             }
             
-            // Create bench schedule if we have more than 9 players
+            // Create fair bench schedule if we have more than 9 players
             let benchSchedule = [];
             if (numPlayers > 9) {
-                // Create a balanced bench schedule with randomization
-                const totalBenchSlots = playersToBenchPerInning * innings;
-                const baseBenchInnings = Math.floor(totalBenchSlots / numPlayers);
-                const extraBenchInnings = totalBenchSlots % numPlayers;
+                console.log(`Creating fair bench rotation: ${playersToBenchPerInning} players sit each inning`);
                 
-                const playerBenchCount = new Array(numPlayers).fill(0);
+                // Track which players have been benched to ensure everyone gets one turn before anyone gets a second
+                const playersBenched = new Set();
+                const playersBenchedTwice = new Set();
                 
                 for (let inning = 1; inning <= innings; inning++) {
                     const benchIndices = [];
-                    const availableToBench = shuffledPlayers.map((p, index) => ({ player: p, index, benchCount: playerBenchCount[index] }));
                     
-                    // Sort by bench count (players are already randomized from the shuffle)
-                    availableToBench.sort((a, b) => a.benchCount - b.benchCount);
-                    
-                    for (let i = 0; i < playersToBenchPerInning && i < availableToBench.length; i++) {
-                        benchIndices.push(availableToBench[i].index);
-                        playerBenchCount[availableToBench[i].index]++;
+                    // First priority: Players who haven't been benched yet
+                    const playersNeverBenched = [];
+                    for (let i = 0; i < numPlayers; i++) {
+                        if (!playersBenched.has(i)) {
+                            playersNeverBenched.push(i);
+                        }
                     }
+                    
+                    // Second priority: Players who have been benched once (but not twice)
+                    const playersBenchedOnce = [];
+                    for (let i = 0; i < numPlayers; i++) {
+                        if (playersBenched.has(i) && !playersBenchedTwice.has(i)) {
+                            playersBenchedOnce.push(i);
+                        }
+                    }
+                    
+                    // Third priority: Players who have been benched twice (if necessary)
+                    const playersBenchedTwiceList = [];
+                    for (let i = 0; i < numPlayers; i++) {
+                        if (playersBenchedTwice.has(i)) {
+                            playersBenchedTwiceList.push(i);
+                        }
+                    }
+                    
+                    // Select bench players in priority order
+                    let remainingSlots = playersToBenchPerInning;
+                    
+                    // First, fill with players who have never been benched
+                    const shuffledNeverBenched = [...playersNeverBenched].sort(() => Math.random() - 0.5);
+                    const neverBenchedCount = Math.min(remainingSlots, shuffledNeverBenched.length);
+                    for (let i = 0; i < neverBenchedCount; i++) {
+                        benchIndices.push(shuffledNeverBenched[i]);
+                        playersBenched.add(shuffledNeverBenched[i]);
+                        remainingSlots--;
+                    }
+                    
+                    // Then, fill with players who have been benched once
+                    if (remainingSlots > 0) {
+                        const shuffledBenchedOnce = [...playersBenchedOnce].sort(() => Math.random() - 0.5);
+                        const benchedOnceCount = Math.min(remainingSlots, shuffledBenchedOnce.length);
+                        for (let i = 0; i < benchedOnceCount; i++) {
+                            benchIndices.push(shuffledBenchedOnce[i]);
+                            playersBenchedTwice.add(shuffledBenchedOnce[i]);
+                            remainingSlots--;
+                        }
+                    }
+                    
+                    // Finally, if we still need more players, use those who have been benched twice
+                    if (remainingSlots > 0) {
+                        const shuffledBenchedTwice = [...playersBenchedTwiceList].sort(() => Math.random() - 0.5);
+                        const benchedTwiceCount = Math.min(remainingSlots, shuffledBenchedTwice.length);
+                        for (let i = 0; i < benchedTwiceCount; i++) {
+                            benchIndices.push(shuffledBenchedTwice[i]);
+                            remainingSlots--;
+                        }
+                    }
+                    
                     benchSchedule.push(benchIndices);
+                    console.log(`Inning ${inning} bench: ${benchIndices.map(i => shuffledPlayers[i].name).join(', ')}`);
                 }
             }
             
