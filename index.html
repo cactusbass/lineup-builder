@@ -3859,13 +3859,22 @@
                             console.log(`Available pitchers for inning ${inning}:`, availableForPos.map(p => `${p.name} (ID: ${p.id})`));
                             
                             if (manualPitcherId) {
-                                // Use manually selected pitcher - override availability checks
-                                const manualPitcher = gamePlayers.find(p => p.id == manualPitcherId);
+                                // Use manually selected pitcher - but still check if they're available (not benched, not used)
+                                const manualPitcher = availableForPos.find(p => p.id == manualPitcherId);
                                 if (manualPitcher) {
                                     selectedPlayer = manualPitcher;
-                                    console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning}) - overriding availability checks`);
+                                    console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning}) - manual selection within available players`);
                                 } else {
-                                    console.log(`Manual pitcher ID ${manualPitcherId} not found in game players, falling back to automatic selection`);
+                                    // Check if the manual pitcher is benched or already used
+                                    const benchedPitcher = benchedPlayers.has(manualPitcherId);
+                                    const usedPitcher = usedPlayers.has(manualPitcherId);
+                                    if (benchedPitcher) {
+                                        console.log(`Manual pitcher ID ${manualPitcherId} is benched this inning, falling back to automatic selection`);
+                                    } else if (usedPitcher) {
+                                        console.log(`Manual pitcher ID ${manualPitcherId} is already used this inning, falling back to automatic selection`);
+                                    } else {
+                                        console.log(`Manual pitcher ID ${manualPitcherId} not found in available players, falling back to automatic selection`);
+                                    }
                                     // Fall through to automatic selection
                                 }
                             } else {
@@ -4031,6 +4040,14 @@
                         
                         console.log(`Inning ${inning} - ${selectedPlayer.name} assigned to ${pos}`);
                         console.log(`${selectedPlayer.name} position history:`, positionHistory[selectedPlayer.id]);
+                        
+                        // Validation: Ensure player isn't already used or benched
+                        if (usedPlayers.has(selectedPlayer.id)) {
+                            console.error(`ERROR: ${selectedPlayer.name} is already used this inning!`);
+                        }
+                        if (benchedPlayers.has(selectedPlayer.id)) {
+                            console.error(`ERROR: ${selectedPlayer.name} is benched this inning but assigned to ${pos}!`);
+                        }
                     }
                 });
                 
