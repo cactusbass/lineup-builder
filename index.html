@@ -3752,6 +3752,7 @@
             const lastCatcherInning = {};
             const lastOutfieldInning = {}; // Track last inning each player played outfield
             const outfieldPositionUsage = {}; // Track which outfield positions each player has played
+            const positionHistory = {}; // Track which positions each player has played across all innings
             
             shuffledPlayers.forEach(player => {
                 playerUsage[player.id] = 0;
@@ -3761,6 +3762,7 @@
                 positionUsage[player.id] = {};
                 lastOutfieldInning[player.id] = 0; // Initialize outfield tracking
                 outfieldPositionUsage[player.id] = { LF: 0, CF: 0, RF: 0 }; // Initialize outfield position tracking
+                positionHistory[player.id] = []; // Initialize position history tracking
                 positions.forEach(pos => {
                     positionUsage[player.id][pos] = 0;
                 });
@@ -3826,11 +3828,25 @@
                 // Assign positions one by one, ensuring no player gets multiple positions
                 positionsToFill.forEach(pos => {
                     // Find available players for this position who haven't been used this inning and aren't benched
-                    const availableForPos = shuffledPlayers.filter(p => 
+                    let availableForPos = shuffledPlayers.filter(p => 
                         p.availablePositions.includes(pos) && 
                         !usedPlayers.has(p.id) && 
                         !benchedPlayers.has(p.id)
                     );
+                    
+                    // Additional filter: avoid players who have already played this position in previous innings
+                    if (positionHistory && Object.keys(positionHistory).length > 0) {
+                        const playersNotInThisPosition = availableForPos.filter(player => 
+                            !positionHistory[player.id].includes(pos)
+                        );
+                        
+                        if (playersNotInThisPosition.length > 0) {
+                            availableForPos = playersNotInThisPosition;
+                            console.log(`Inning ${inning} - Filtered out players who already played ${pos}: ${availableForPos.length} available`);
+                        } else {
+                            console.log(`Inning ${inning} - All available players have played ${pos} before, using all available players`);
+                        }
+                    }
                     
                     if (availableForPos.length > 0) {
                         let selectedPlayer;
@@ -4007,7 +4023,14 @@
                         }
                         positionUsage[selectedPlayer.id][pos]++;
                         
+                        // Track position history to avoid repeats
+                        if (!positionHistory[selectedPlayer.id]) {
+                            positionHistory[selectedPlayer.id] = [];
+                        }
+                        positionHistory[selectedPlayer.id].push(pos);
+                        
                         console.log(`Inning ${inning} - ${selectedPlayer.name} assigned to ${pos}`);
+                        console.log(`${selectedPlayer.name} position history:`, positionHistory[selectedPlayer.id]);
                     }
                 });
                 
