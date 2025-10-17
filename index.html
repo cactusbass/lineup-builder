@@ -4158,6 +4158,23 @@
                             benchedPlayers.delete(selectedPlayer.id);
                             benchUsage[selectedPlayer.id] = Math.max(0, benchUsage[selectedPlayer.id] - 1);
                             console.log(`Fixed: Removed ${selectedPlayer.name} from bench due to position assignment`);
+                            
+                            // Find a replacement player for the bench to maintain correct bench count
+                            const availableForBench = gamePlayers.filter(player => 
+                                !usedPlayers.has(player.id) && 
+                                !benchedPlayers.has(player.id) &&
+                                player.id !== selectedPlayer.id
+                            );
+                            
+                            if (availableForBench.length > 0) {
+                                const replacementPlayer = availableForBench[0]; // Take the first available
+                                benchedPlayers.add(replacementPlayer.id);
+                                benchUsage[replacementPlayer.id]++;
+                                console.log(`BENCH REPLACEMENT: Added ${replacementPlayer.name} to bench to replace ${selectedPlayer.name}`);
+                            } else {
+                                console.log(`BENCH REPLACEMENT: No available players to replace ${selectedPlayer.name} on bench`);
+                            }
+                            
                             console.log(`BENCH CONFLICT RESOLVED: New bench count: ${benchedPlayers.size}`);
                         }
                     }
