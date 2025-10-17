@@ -3791,6 +3791,7 @@
             
             // Create fair bench schedule if we have more than 9 players
             let benchSchedule = [];
+            console.log(`Bench schedule creation: numPlayers=${numPlayers}, playersToBenchPerInning=${playersToBenchPerInning}`);
             if (numPlayers > 9) {
                 console.log(`Creating fair bench rotation: ${playersToBenchPerInning} players sit each inning`);
                 
@@ -3870,12 +3871,17 @@
                 const benchedPlayers = new Set(); // Track players benched this inning
                 
                 // Add players who are benched this inning (if we have more than 9 players)
+                console.log(`Inning ${inning} - numPlayers: ${numPlayers}, benchSchedule.length: ${benchSchedule.length}`);
                 if (numPlayers > 9 && benchSchedule.length > 0) {
                     const benchedThisInning = benchSchedule[inning - 1].map(index => shuffledPlayers[index]);
+                    console.log(`Inning ${inning} - benchedThisInning:`, benchedThisInning.map(p => p.name));
                     benchedThisInning.forEach(player => {
                         benchedPlayers.add(player.id);
                         benchUsage[player.id]++;
                     });
+                    console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
+                } else {
+                    console.log(`Inning ${inning} - No bench assignment: numPlayers=${numPlayers}, benchSchedule.length=${benchSchedule.length}`);
                 }
                 
                 // Create a list of all positions to fill
