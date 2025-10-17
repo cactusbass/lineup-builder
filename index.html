@@ -3932,6 +3932,10 @@
                     console.log(`Inning ${inning} - Position ${pos} - usedPlayers:`, Array.from(usedPlayers));
                     console.log(`Inning ${inning} - Position ${pos} - benchedPlayers:`, Array.from(benchedPlayers));
                     
+                    // Double-check: Remove any players who are in benchedPlayers set
+                    availableForPos = availableForPos.filter(p => !benchedPlayers.has(p.id));
+                    console.log(`Inning ${inning} - Position ${pos} - availableForPos after bench check:`, availableForPos.map(p => p.name));
+                    
                     // Additional filter: avoid players who have already played this position in previous innings
                     if (positionHistory && Object.keys(positionHistory).length > 0) {
                         const playersNotInThisPosition = availableForPos.filter(player => 
@@ -4125,9 +4129,24 @@
                         }
                         if (benchedPlayers.has(selectedPlayer.id)) {
                             console.error(`ERROR: ${selectedPlayer.name} is benched this inning but assigned to ${pos}!`);
+                            // Remove from bench and add to used players to fix the conflict
+                            benchedPlayers.delete(selectedPlayer.id);
+                            benchUsage[selectedPlayer.id] = Math.max(0, benchUsage[selectedPlayer.id] - 1);
+                            console.log(`Fixed: Removed ${selectedPlayer.name} from bench due to position assignment`);
                         }
                     }
                 });
+                
+                // Final validation: Check for any players who are both used and benched
+                const doubleAssigned = Array.from(usedPlayers).filter(id => benchedPlayers.has(id));
+                if (doubleAssigned.length > 0) {
+                    console.error(`CRITICAL ERROR: Players both used and benched in inning ${inning}:`, doubleAssigned.map(id => shuffledPlayers.find(p => p.id === id)?.name));
+                    // Fix by removing from bench
+                    doubleAssigned.forEach(id => {
+                        benchedPlayers.delete(id);
+                        benchUsage[id] = Math.max(0, benchUsage[id] - 1);
+                    });
+                }
                 
                 // Store this inning's lineup
                 lineup[inning - 1] = { ...inningLineup };
