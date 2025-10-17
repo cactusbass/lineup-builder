@@ -3861,6 +3861,7 @@
                     
                     benchSchedule.push(benchIndices);
                     console.log(`Inning ${inning} bench: ${benchIndices.map(i => shuffledPlayers[i].name).join(', ')}`);
+                    console.log(`Inning ${inning} bench count: ${benchIndices.length} (expected: ${playersToBenchPerInning})`);
                 }
             }
             
@@ -3875,6 +3876,7 @@
                 if (numPlayers > 9 && benchSchedule.length > 0) {
                     const benchIndices = benchSchedule[inning - 1];
                     console.log(`Inning ${inning} - benchIndices:`, benchIndices);
+                    console.log(`Inning ${inning} - Expected bench count: ${playersToBenchPerInning}, Actual bench indices: ${benchIndices.length}`);
                     const benchedThisInning = benchIndices.map(index => shuffledPlayers[index]);
                     console.log(`Inning ${inning} - benchedThisInning:`, benchedThisInning.map(p => p.name));
                     benchedThisInning.forEach(player => {
@@ -3883,6 +3885,7 @@
                         console.log(`Inning ${inning} - Added ${player.name} to bench`);
                     });
                     console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
+                    console.log(`Inning ${inning} - Final bench count: ${benchedPlayers.size}`);
                 } else {
                     console.log(`Inning ${inning} - No bench assignment: numPlayers=${numPlayers}, benchSchedule.length=${benchSchedule.length}`);
                 }
