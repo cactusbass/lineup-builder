@@ -5466,8 +5466,13 @@
             const dropdowns = document.getElementById('pitcherDropdowns');
             dropdowns.innerHTML = '';
             
+            console.log('=== DEBUG: generatePitcherDropdowns ===');
+            console.log('Generating pitcher dropdowns...');
+            
             // Get available pitchers for current game
             const availablePitchers = getAvailablePitchersForCurrentGame();
+            
+            console.log('Available pitchers for dropdowns:', availablePitchers.length);
             
             // Create dropdowns for 6 innings
             for (let inning = 1; inning <= 6; inning++) {
@@ -5495,11 +5500,13 @@
                 select.appendChild(emptyOption);
                 
                 // Add pitcher options
+                console.log(`Adding ${availablePitchers.length} pitchers to inning ${inning} dropdown`);
                 availablePitchers.forEach(pitcher => {
                     const option = document.createElement('option');
                     option.value = pitcher.id;
                     option.textContent = pitcher.name;
                     select.appendChild(option);
+                    console.log(`Added pitcher option: ${pitcher.name} (ID: ${pitcher.id})`);
                 });
                 
                 inningDiv.appendChild(label);
@@ -5509,12 +5516,22 @@
         }
         
         function getAvailablePitchersForCurrentGame() {
-            if (!currentGameDetail) return [];
+            if (!currentGameDetail) {
+                console.log('No currentGameDetail available');
+                return [];
+            }
+            
+            console.log('=== DEBUG: getAvailablePitchersForCurrentGame ===');
+            console.log('Current game available players:', currentGameDetail.availablePlayers);
+            console.log('All players:', players.map(p => ({ id: p.id, name: p.name, positions: p.availablePositions })));
             
             const availablePlayers = players.filter(p => 
                 currentGameDetail.availablePlayers.includes(p.id) && 
                 p.availablePositions.includes('P')
             );
+            
+            console.log('Available pitchers found:', availablePlayers.map(p => ({ id: p.id, name: p.name, positions: p.availablePositions })));
+            console.log('=== END DEBUG ===');
             
             return availablePlayers;
         }
