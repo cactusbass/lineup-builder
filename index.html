@@ -5334,8 +5334,18 @@
             const lineupDisplay = document.getElementById('lineup-display');
             if (lineupDisplay) {
                 if (currentGameDetail && currentGameDetail.generatedLineup) {
-                    // If this game has a saved lineup, show it
-                    viewSavedLineup(currentGameDetail.id);
+                    // Check if the saved lineup matches the current game's innings
+                    const savedInnings = currentGameDetail.generatedLineup.innings.length;
+                    const gameInnings = currentGameDetail.innings;
+                    
+                    if (savedInnings === gameInnings) {
+                        // If this game has a saved lineup with matching innings, show it
+                        viewSavedLineup(currentGameDetail.id);
+                    } else {
+                        // If innings don't match, clear the old lineup and show message
+                        currentGameDetail.generatedLineup = null;
+                        lineupDisplay.innerHTML = '<p style="color: #6b7280;">Click "Generate Defensive Lineup" to create position rotations for this game.</p>';
+                    }
                 } else {
                     // Otherwise, show the default message
                     lineupDisplay.innerHTML = '<p style="color: #6b7280;">Click "Generate Defensive Lineup" to create position rotations for this game.</p>';
