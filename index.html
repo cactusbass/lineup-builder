@@ -4153,10 +4153,12 @@
                         console.log(`${selectedPlayer.name} position history:`, positionHistory[selectedPlayer.id]);
                         if (benchedPlayers.has(selectedPlayer.id)) {
                             console.error(`ERROR: ${selectedPlayer.name} is benched this inning but assigned to ${pos}!`);
+                            console.log(`BENCH CONFLICT: Removing ${selectedPlayer.name} from bench - bench count will drop from ${benchedPlayers.size} to ${benchedPlayers.size - 1}`);
                             // Remove from bench and add to used players to fix the conflict
                             benchedPlayers.delete(selectedPlayer.id);
                             benchUsage[selectedPlayer.id] = Math.max(0, benchUsage[selectedPlayer.id] - 1);
                             console.log(`Fixed: Removed ${selectedPlayer.name} from bench due to position assignment`);
+                            console.log(`BENCH CONFLICT RESOLVED: New bench count: ${benchedPlayers.size}`);
                         }
                     }
                 });
