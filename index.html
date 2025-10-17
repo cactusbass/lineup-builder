@@ -3924,7 +3924,7 @@
                             benchedPlayers.delete(manualPitcher.id);
                             benchUsage[manualPitcher.id] = Math.max(0, benchUsage[manualPitcher.id] - 1);
                             
-                            // Find a replacement player for the bench
+                            // Find a replacement player for the bench, prioritizing those who haven't been benched recently
                             const availableForBench = gamePlayers.filter(player => 
                                 !usedPlayers.has(player.id) && 
                                 !benchedPlayers.has(player.id) &&
@@ -3932,10 +3932,18 @@
                             );
                             
                             if (availableForBench.length > 0) {
-                                const replacementPlayer = availableForBench[0];
+                                // Prioritize players who haven't been benched recently (lower benchUsage)
+                                const sortedByBenchUsage = availableForBench.sort((a, b) => {
+                                    const aUsage = benchUsage[a.id] || 0;
+                                    const bUsage = benchUsage[b.id] || 0;
+                                    return aUsage - bUsage;
+                                });
+                                
+                                const replacementPlayer = sortedByBenchUsage[0];
                                 benchedPlayers.add(replacementPlayer.id);
                                 benchUsage[replacementPlayer.id]++;
-                                console.log(`BENCH REPLACEMENT: Added ${replacementPlayer.name} to bench to replace ${manualPitcher.name}`);
+                                console.log(`BENCH REPLACEMENT: Added ${replacementPlayer.name} to bench to replace ${manualPitcher.name} (bench usage: ${benchUsage[replacementPlayer.id]})`);
+                                console.log(`BENCH REPLACEMENT: New bench count: ${benchedPlayers.size}, bench players:`, Array.from(benchedPlayers).map(id => gamePlayers.find(p => p.id === id)?.name));
                             } else {
                                 console.log(`BENCH REPLACEMENT: No available players to replace ${manualPitcher.name} on bench`);
                             }
