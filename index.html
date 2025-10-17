@@ -4109,6 +4109,8 @@
                         usedPlayers.add(selectedPlayer.id);
                         playerUsage[selectedPlayer.id]++;
                         
+                        console.log(`Inning ${inning} - ${selectedPlayer.name} assigned to ${pos} - usedPlayers now:`, Array.from(usedPlayers));
+                        
                         // Update position-specific usage
                         if (pos === 'P') {
                             pitcherUsage[selectedPlayer.id]++;
