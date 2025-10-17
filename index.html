@@ -4177,6 +4177,7 @@
                 
                 // Debug: Log each player's actual usage
                 console.log(`${player.name}: ${actualInningsPlayed} playing, ${actualBenchTime} bench, infield: ${infieldUsage[player.id]}, outfield: ${outfieldUsage[player.id]}`);
+                console.log(`${player.name}: totalInnings=${totalInnings}, expectedTotal=${expectedTotal}, innings=${innings}`);
                 
                 const infieldBalance = Math.abs(infieldUsage[player.id] - targetInfieldPerPlayer);
                 const outfieldBalance = Math.abs(outfieldUsage[player.id] - targetOutfieldPerPlayer);
