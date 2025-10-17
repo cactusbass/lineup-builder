@@ -3955,8 +3955,15 @@
                         
                         // Smart selection based on position type and balance
                         if (pos === 'P') {
+                            console.log(`PITCHER ASSIGNMENT - Inning ${inning}`);
+                            console.log(`PITCHER ASSIGNMENT - availableForPos:`, availableForPos.map(p => p.name));
+                            console.log(`PITCHER ASSIGNMENT - benchedPlayers:`, Array.from(benchedPlayers));
+                            console.log(`PITCHER ASSIGNMENT - usedPlayers:`, Array.from(usedPlayers));
+                            
                             // Use manual pitcher if available, otherwise use automatic selection
                             if (manualPitcher) {
+                                console.log(`PITCHER ASSIGNMENT - Using manual pitcher: ${manualPitcher.name}`);
+                                console.log(`PITCHER ASSIGNMENT - Manual pitcher benched?`, benchedPlayers.has(manualPitcher.id));
                                 selectedPlayer = manualPitcher;
                                 console.log(`Using manual pitcher: ${selectedPlayer.name} (inning ${inning}) - manual selection takes priority`);
                             } else {
@@ -3966,9 +3973,11 @@
                                 if (!selectedPlayer) {
                             // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
                             const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
+                            console.log(`PITCHER ASSIGNMENT - availablePitchers:`, availablePitchers.map(p => p.name));
                             
                             // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
                             const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
+                            console.log(`PITCHER ASSIGNMENT - unusedPitchers:`, unusedPitchers.map(p => p.name));
                             
                             if (unusedPitchers.length > 0) {
                                 // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
