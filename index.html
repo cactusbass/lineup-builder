@@ -3707,6 +3707,7 @@
             const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
             console.log('Opponent name:', opponentName);
             let lineupHTML = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
+            console.log('Lineup HTML header with innings:', innings);
             
             // Use the provided gamePlayers instead of global players array
             const shuffledPlayers = [...gamePlayers].sort(() => Math.random() - 0.5);
@@ -4203,6 +4204,8 @@
             `;
             
             console.log('=== generateSmartLineup COMPLETE ===');
+            console.log('Final lineup array length:', lineup.length);
+            console.log('Expected innings:', innings);
             console.log('Final lineup array:', lineup);
             console.log('Final lineup HTML length:', lineupHTML.length);
             return lineupHTML;
