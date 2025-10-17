@@ -3694,6 +3694,8 @@
             // Get the number of innings from the current game
             const game = games.find(g => g.id === gameId);
             const innings = game ? game.innings : 6; // Default to 6 if not found
+            console.log('Game found:', game);
+            console.log('Game innings property:', game ? game.innings : 'no game found');
             console.log('Number of innings for this game:', innings);
             
             // Initialize the global lineup array
@@ -3945,17 +3947,17 @@
                                 
                                 // If no manual selection or manual pitcher not available, use automatic selection
                                 if (!selectedPlayer) {
-                                    // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
-                                    const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
-                                    
-                                    // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
-                                    const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
-                                
-                                if (unusedPitchers.length > 0) {
-                                    // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
-                                    selectedPlayer = unusedPitchers[0];
-                                    console.log(`Using new pitcher: ${selectedPlayer.name} (inning ${inning}) - prioritizing 6 different pitchers`);
-                                } else {
+                            // For pitcher, prioritize 6 different pitchers (1 inning each) over consecutive innings
+                            const availablePitchers = availableForPos.filter(p => p.availablePositions.includes('P'));                                                                                                  
+                            
+                            // First priority: Find pitchers who haven't pitched yet (for 6 different pitchers)
+                            const unusedPitchers = availablePitchers.filter(p => pitcherUsage[p.id] === 0);
+                            
+                            if (unusedPitchers.length > 0) {
+                                // Use a pitcher who hasn't pitched yet (prefer 6 different pitchers)
+                                selectedPlayer = unusedPitchers[0];
+                                console.log(`Using new pitcher: ${selectedPlayer.name} (inning ${inning}) - prioritizing 6 different pitchers`);
+                            } else {
                                 // Second priority: If all pitchers have pitched, then use consecutive innings
                                 const lastInningPitcher = lineup[inning - 2] ? lineup[inning - 2]['P'] : null;
                                 const consecutivePitcher = availablePitchers.find(p => 
@@ -3974,8 +3976,8 @@
                                     });
                                 }
                             }
+                                }
                             }
-                        }
                         } else if (pos === 'C') {
                             // For catcher, ensure no consecutive innings and rotate through available catchers
                             let availableCatchers = availableForPos.filter(p => p.availablePositions.includes('C'));
@@ -4050,9 +4052,9 @@
                                         console.log(`Using outfield position variety: ${selectedPlayer.name} for ${pos} (outfield innings: ${outfieldUsage[selectedPlayer.id]})`);
                                     } else {
                                         // Fallback to lowest outfield usage
-                                        selectedPlayer = availableForOutfield.reduce((best, current) => {
-                                            return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
-                                        });
+                                selectedPlayer = availableForOutfield.reduce((best, current) => {
+                                    return outfieldUsage[current.id] < outfieldUsage[best.id] ? current : best;
+                                });
                                     }
                                 } else {
                                     // Normal selection for players with 1 or fewer outfield innings
@@ -4554,7 +4556,7 @@
                 saveGames(); // Save the cleaned up game data
             }
             
-            // Load existing batting order or initialize empty with correct number of slots                                                                
+            // Load existing batting order or initialize empty with correct number of slots
             const numSlots = availablePlayers.length;
             
             console.log('Batting order debug:', {
@@ -5470,18 +5472,12 @@
             const dropdowns = document.getElementById('pitcherDropdowns');
             dropdowns.innerHTML = '';
             
-            console.log('=== DEBUG: generatePitcherDropdowns ===');
-            console.log('Generating pitcher dropdowns...');
-            
             // Get available pitchers for current game
             const availablePitchers = getAvailablePitchersForCurrentGame();
-            
-            console.log('Available pitchers for dropdowns:', availablePitchers.length);
             
             // Get the number of innings from the current game
             const game = games.find(g => g.id === currentGameDetail.id);
             const numInnings = game ? game.innings : 6; // Default to 6 if not found
-            console.log('Creating dropdowns for', numInnings, 'innings');
             
             // Create dropdowns for the game's number of innings
             for (let inning = 1; inning <= numInnings; inning++) {
@@ -5509,13 +5505,11 @@
                 select.appendChild(emptyOption);
                 
                 // Add pitcher options
-                console.log(`Adding ${availablePitchers.length} pitchers to inning ${inning} dropdown`);
                 availablePitchers.forEach(pitcher => {
                     const option = document.createElement('option');
                     option.value = pitcher.id;
                     option.textContent = pitcher.name;
                     select.appendChild(option);
-                    console.log(`Added pitcher option: ${pitcher.name} (ID: ${pitcher.id})`);
                 });
                 
                 inningDiv.appendChild(label);
@@ -5525,22 +5519,12 @@
         }
         
         function getAvailablePitchersForCurrentGame() {
-            if (!currentGameDetail) {
-                console.log('No currentGameDetail available');
-                return [];
-            }
-            
-            console.log('=== DEBUG: getAvailablePitchersForCurrentGame ===');
-            console.log('Current game available players:', currentGameDetail.availablePlayers);
-            console.log('All players:', players.map(p => ({ id: p.id, name: p.name, positions: p.availablePositions })));
+            if (!currentGameDetail) return [];
             
             const availablePlayers = players.filter(p => 
                 currentGameDetail.availablePlayers.includes(p.id) && 
                 p.availablePositions.includes('P')
             );
-            
-            console.log('Available pitchers found:', availablePlayers.map(p => ({ id: p.id, name: p.name, positions: p.availablePositions })));
-            console.log('=== END DEBUG ===');
             
             return availablePlayers;
         }
@@ -5683,12 +5667,12 @@
             }, 2000); // Check for changes every 2 seconds
             
             try {
-                // Initialize team first
-                initializeTeam();
-                
-                loadPlayers(); // Load saved players from localStorage
-                loadGames(); // Load saved games from localStorage
-                loadSeasonStats(); // Load season stats for cumulative balancing
+            // Initialize team first
+            initializeTeam();
+            
+            loadPlayers(); // Load saved players from localStorage
+            loadGames(); // Load saved games from localStorage
+            loadSeasonStats(); // Load season stats for cumulative balancing
             } catch (error) {
                 console.error('🚨 INITIALIZATION ERROR:', error);
                 alert('App initialization failed: ' + error.message);
