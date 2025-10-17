@@ -4104,6 +4104,11 @@
                             });
                         }
                         
+                        // Validation: Ensure player isn't already used or benched BEFORE assignment
+                        if (usedPlayers.has(selectedPlayer.id)) {
+                            console.error(`ERROR: ${selectedPlayer.name} is already used this inning!`);
+                        }
+                        
                         // Assign the selected player to this position
                         inningLineup[pos] = selectedPlayer.name;
                         usedPlayers.add(selectedPlayer.id);
@@ -4136,11 +4141,6 @@
                         
                         console.log(`Inning ${inning} - ${selectedPlayer.name} assigned to ${pos}`);
                         console.log(`${selectedPlayer.name} position history:`, positionHistory[selectedPlayer.id]);
-                        
-                        // Validation: Ensure player isn't already used or benched
-                        if (usedPlayers.has(selectedPlayer.id)) {
-                            console.error(`ERROR: ${selectedPlayer.name} is already used this inning!`);
-                        }
                         if (benchedPlayers.has(selectedPlayer.id)) {
                             console.error(`ERROR: ${selectedPlayer.name} is benched this inning but assigned to ${pos}!`);
                             // Remove from bench and add to used players to fix the conflict
