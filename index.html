@@ -3919,8 +3919,28 @@
                         const isUsed = usedPlayers.has(manualPitcherId);
                         
                         if (isBenched) {
-                            console.log(`Manual pitcher ${manualPitcher.name} is benched this inning, falling back to automatic selection`);
-                            manualPitcher = null;
+                            console.log(`Manual pitcher ${manualPitcher.name} is benched this inning, removing from bench and finding replacement`);
+                            // Remove from bench and find replacement
+                            benchedPlayers.delete(manualPitcher.id);
+                            benchUsage[manualPitcher.id] = Math.max(0, benchUsage[manualPitcher.id] - 1);
+                            
+                            // Find a replacement player for the bench
+                            const availableForBench = gamePlayers.filter(player => 
+                                !usedPlayers.has(player.id) && 
+                                !benchedPlayers.has(player.id) &&
+                                player.id !== manualPitcher.id
+                            );
+                            
+                            if (availableForBench.length > 0) {
+                                const replacementPlayer = availableForBench[0];
+                                benchedPlayers.add(replacementPlayer.id);
+                                benchUsage[replacementPlayer.id]++;
+                                console.log(`BENCH REPLACEMENT: Added ${replacementPlayer.name} to bench to replace ${manualPitcher.name}`);
+                            } else {
+                                console.log(`BENCH REPLACEMENT: No available players to replace ${manualPitcher.name} on bench`);
+                            }
+                            
+                            console.log(`Manual pitcher ${manualPitcher.name} is now available - will override automatic selection`);
                         } else if (isUsed) {
                             console.log(`Manual pitcher ${manualPitcher.name} is already used this inning, falling back to automatic selection`);
                             manualPitcher = null;
