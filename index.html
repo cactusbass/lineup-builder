@@ -3692,10 +3692,10 @@
             console.log('=== generateSmartLineup START ===');
             
             // Get the number of innings from the current game
-            const game = games.find(g => g.id === gameId);
-            const innings = game ? game.innings : 6; // Default to 6 if not found
-            console.log('Game found:', game);
-            console.log('Game innings property:', game ? game.innings : 'no game found');
+            const gameObj = games.find(g => g.id === gameId);
+            const innings = gameObj ? gameObj.innings : 6; // Default to 6 if not found
+            console.log('Game found:', gameObj);
+            console.log('Game innings property:', gameObj ? gameObj.innings : 'no game found');
             console.log('Number of innings for this game:', innings);
             
             // Initialize the global lineup array
@@ -3703,8 +3703,7 @@
             console.log('Initialized lineup array:', lineup);
             
             // Get the opponent name from the current game or use a default
-            const game = games.find(g => g.id === gameId);
-            const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
+            const opponentName = gameObj ? gameObj.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
             console.log('Opponent name:', opponentName);
             let lineupHTML = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
             console.log('Lineup HTML header with innings:', innings);
