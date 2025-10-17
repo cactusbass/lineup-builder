@@ -3873,11 +3873,14 @@
                 // Add players who are benched this inning (if we have more than 9 players)
                 console.log(`Inning ${inning} - numPlayers: ${numPlayers}, benchSchedule.length: ${benchSchedule.length}`);
                 if (numPlayers > 9 && benchSchedule.length > 0) {
-                    const benchedThisInning = benchSchedule[inning - 1].map(index => shuffledPlayers[index]);
+                    const benchIndices = benchSchedule[inning - 1];
+                    console.log(`Inning ${inning} - benchIndices:`, benchIndices);
+                    const benchedThisInning = benchIndices.map(index => shuffledPlayers[index]);
                     console.log(`Inning ${inning} - benchedThisInning:`, benchedThisInning.map(p => p.name));
                     benchedThisInning.forEach(player => {
                         benchedPlayers.add(player.id);
                         benchUsage[player.id]++;
+                        console.log(`Inning ${inning} - Added ${player.name} to bench`);
                     });
                     console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
                 } else {
@@ -3924,6 +3927,10 @@
                         !usedPlayers.has(p.id) && 
                         !benchedPlayers.has(p.id)
                     );
+                    
+                    console.log(`Inning ${inning} - Position ${pos} - availableForPos:`, availableForPos.map(p => p.name));
+                    console.log(`Inning ${inning} - Position ${pos} - usedPlayers:`, Array.from(usedPlayers));
+                    console.log(`Inning ${inning} - Position ${pos} - benchedPlayers:`, Array.from(benchedPlayers));
                     
                     // Additional filter: avoid players who have already played this position in previous innings
                     if (positionHistory && Object.keys(positionHistory).length > 0) {
