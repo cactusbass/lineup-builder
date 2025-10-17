@@ -4167,7 +4167,7 @@
                 const actualInningsPlayed = playerUsage[player.id];
                 const actualBenchTime = benchUsage[player.id] || 0;
                 const totalInnings = actualInningsPlayed + actualBenchTime;
-                const expectedTotal = 6; // Each player should be involved in all 6 innings
+                const expectedTotal = innings; // Each player should be involved in all innings for this game
                 
                 // Debug: Log each player's actual usage
                 console.log(`${player.name}: ${actualInningsPlayed} playing, ${actualBenchTime} bench, infield: ${infieldUsage[player.id]}, outfield: ${outfieldUsage[player.id]}`);
