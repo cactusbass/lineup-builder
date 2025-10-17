@@ -3690,7 +3690,11 @@
         
         function generateSmartLineup(gamePlayers, gameId) {
             console.log('=== generateSmartLineup START ===');
-            const innings = 6;
+            
+            // Get the number of innings from the current game
+            const game = games.find(g => g.id === gameId);
+            const innings = game ? game.innings : 6; // Default to 6 if not found
+            console.log('Number of innings for this game:', innings);
             
             // Initialize the global lineup array
             lineup = [];
@@ -5474,8 +5478,13 @@
             
             console.log('Available pitchers for dropdowns:', availablePitchers.length);
             
-            // Create dropdowns for 6 innings
-            for (let inning = 1; inning <= 6; inning++) {
+            // Get the number of innings from the current game
+            const game = games.find(g => g.id === currentGameDetail.id);
+            const numInnings = game ? game.innings : 6; // Default to 6 if not found
+            console.log('Creating dropdowns for', numInnings, 'innings');
+            
+            // Create dropdowns for the game's number of innings
+            for (let inning = 1; inning <= numInnings; inning++) {
                 const inningDiv = document.createElement('div');
                 inningDiv.style.display = 'flex';
                 inningDiv.style.flexDirection = 'column';
@@ -5541,8 +5550,12 @@
             const selectedPitchers = {};
             const duplicates = [];
             
+            // Get the number of innings from the current game
+            const game = games.find(g => g.id === currentGameDetail.id);
+            const numInnings = game ? game.innings : 6; // Default to 6 if not found
+            
             // Collect all selections
-            for (let inning = 1; inning <= 6; inning++) {
+            for (let inning = 1; inning <= numInnings; inning++) {
                 const select = document.getElementById(`pitcherInning${inning}`);
                 if (select) {
                     const selectedId = select.value;
