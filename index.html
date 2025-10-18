@@ -1312,7 +1312,7 @@
                             <li><strong>9 players = no bench</strong> - Perfect setup: 9 players, 9 positions, everyone plays all innings</li>                                                                          
                             <li><strong>10+ players = bench time</strong> - Balanced bench rotation with fair distribution</li>                                                                                         
                             <li><strong>Anti-consecutive bench priority</strong> - Players benched last inning are avoided when possible</li>                                                                                        
-                            <li><strong>First 4 innings rule</strong> - No player can be benched twice in the first 4 innings</li>                                                                                   
+                            <li><strong>First 4 innings rule</strong> - Every player must play at least 3 innings in the first 4 innings</li>                                                                                   
                             <li><strong>Fairness prioritization</strong> - Never-benched players get priority over previously benched players</li>                                                                                   
                             <li><strong>Robust fallback system</strong> - If consecutive bench is unavoidable, it's allowed with clear warnings</li>                                                                                   
                             <li><strong>Always completes successfully</strong> - Algorithm never fails to fill bench slots</li>                                                                                   
@@ -1323,7 +1323,7 @@
                         <h3>🔄 Bench Rotation Algorithm</h3>
                         <ol>
                             <li><strong>Step 1: Avoid consecutive bench</strong> - Exclude players who were benched in the previous inning</li>
-                            <li><strong>Step 2: First 4 innings rule</strong> - In innings 1-4, exclude players who have already been benched in the first 4 innings</li>
+                            <li><strong>Step 2: First 4 innings rule</strong> - In innings 1-4, exclude players who need more playing time to reach 3 innings</li>
                             <li><strong>Step 3: Prioritize fairness</strong> - Never-benched players get absolute priority over previously benched players</li>
                             <li><strong>Step 4: Randomize among equals</strong> - Among players with same bench count, selection is randomized</li>
                             <li><strong>Step 5: Fallback mechanism</strong> - If consecutive bench is unavoidable, allow it with clear warnings</li>
@@ -3864,7 +3864,12 @@
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
                         
-                        if (!wasBenchedLastInning) {
+                        // For first 4 innings: ensure everyone plays at least 3 innings
+                        const isFirstFourInnings = inning <= 4;
+                        const playingInnings = inning - playerBenchCount[i];
+                        const needsMorePlayingTime = isFirstFourInnings && playingInnings < 3;
+                        
+                        if (!wasBenchedLastInning && !needsMorePlayingTime) {
                             candidates.push({
                                 index: i,
                                 benchCount: playerBenchCount[i],
@@ -3952,6 +3957,23 @@
                             console.warn(`⚠️ CONSECUTIVE BENCH in inning ${inning}: ${consecutivePlayers.join(', ')}`);
                         } else {
                             console.log(`✅ No consecutive bench in inning ${inning}`);
+                        }
+                    }
+                    
+                    // Special validation for first 4 innings: everyone must play at least 3 innings
+                    if (inning <= 4) {
+                        const playersNotPlayingEnough = [];
+                        for (let i = 0; i < numPlayers; i++) {
+                            const playingInnings = inning - playerBenchCount[i];
+                            if (playingInnings < 3) {
+                                playersNotPlayingEnough.push(`${shuffledPlayers[i].name}(${playingInnings} innings)`);
+                            }
+                        }
+                        
+                        if (playersNotPlayingEnough.length > 0) {
+                            console.error(`❌ FIRST 4 INNINGS VIOLATION: Players not playing enough: ${playersNotPlayingEnough.join(', ')}`);
+                        } else {
+                            console.log(`✅ First 4 innings rule: All players playing at least 3 innings in first ${inning} innings`);
                         }
                     }
                 }
