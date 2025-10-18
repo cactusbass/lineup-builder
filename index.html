@@ -3834,10 +3834,10 @@
                 // Shuffle for randomness
                 benchRotation.sort(() => Math.random() - 0.5);
                 
-                // SIMPLE AND ROBUST BENCH ROTATION ALGORITHM
-                console.log(`🎯 SIMPLE BENCH ROTATION ALGORITHM`);
+                // ULTRA-SIMPLE BENCH ROTATION ALGORITHM
+                console.log(`🎯 ULTRA-SIMPLE BENCH ROTATION ALGORITHM`);
 
-                // Create a simple bench schedule that prevents consecutive bench
+                // Create a completely simple bench schedule
                 const playerBenchCount = {}; // Track how many times each player has been benched
                 const playerLastBenched = {}; // Track when each player was last benched
 
@@ -3847,10 +3847,10 @@
                     playerLastBenched[i] = -1;
                 }
 
-                console.log(`📊 Simple approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
+                console.log(`📊 Ultra-simple approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
 
                 for (let inning = 1; inning <= innings; inning++) {
-                    console.log(`\n🎯 INNING ${inning} - SIMPLE BENCH SELECTION`);
+                    console.log(`\n🎯 INNING ${inning} - ULTRA-SIMPLE BENCH SELECTION`);
 
                     const benchIndices = [];
                     let remainingSlots = playersToBenchPerInning;
@@ -3864,11 +3864,7 @@
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
                         
-                        // For first 4 innings: prevent any player from being benched twice
-                        const isFirstFourInnings = inning <= 4;
-                        const hasBeenBenchedInFirstFour = isFirstFourInnings && playerBenchCount[i] > 0;
-                        
-                        if (!wasBenchedLastInning && !hasBeenBenchedInFirstFour) {
+                        if (!wasBenchedLastInning) {
                             candidates.push({
                                 index: i,
                                 benchCount: playerBenchCount[i],
@@ -3956,16 +3952,6 @@
                             console.warn(`⚠️ CONSECUTIVE BENCH in inning ${inning}: ${consecutivePlayers.join(', ')}`);
                         } else {
                             console.log(`✅ No consecutive bench in inning ${inning}`);
-                        }
-                    }
-                    
-                    // Special validation for first 4 innings rule
-                    if (inning <= 4) {
-                        const playersBenchedTwice = benchIndices.filter(i => playerBenchCount[i] > 1);
-                        if (playersBenchedTwice.length > 0) {
-                            console.error(`❌ FIRST 4 INNINGS VIOLATION: Players benched twice: ${playersBenchedTwice.map(i => shuffledPlayers[i].name).join(', ')}`);
-                        } else {
-                            console.log(`✅ First 4 innings rule: No player benched twice in first ${inning} innings`);
                         }
                     }
                 }
