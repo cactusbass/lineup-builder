@@ -3850,7 +3850,7 @@
                 console.log(`📊 Smart approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
                 console.log(`🎯 GOAL: Avoid consecutive bench, be fair, always succeed`);
                 console.log(`📊 With ${numPlayers} players: ${numPlayers - 9} players sit each inning`);
-                console.log(`🎯 FIRST 4 INNINGS: 12 players sit once, 1 player sits twice (total: 13 bench appearances)`);
+                console.log(`🎯 FIRST 4 INNINGS: With ${numPlayers} players, everyone sits exactly once (total: ${numPlayers} bench appearances)`);
 
                 for (let inning = 1; inning <= innings; inning++) {
                     console.log(`\n🎯 INNING ${inning} - WORKING BENCH SELECTION`);
@@ -3867,7 +3867,7 @@
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
                         
-                        // For first 4 innings: allow one player to be benched twice
+                        // For first 4 innings: handle different player counts
                         const isFirstFourInnings = inning <= 4;
                         const hasBeenBenchedTwiceInFirstFour = isFirstFourInnings && playerBenchCount[i] >= 2;
                         const hasBeenBenchedOnceInFirstFour = isFirstFourInnings && playerBenchCount[i] >= 1;
@@ -3883,10 +3883,10 @@
                         }
                         
                         if (!wasBenchedLastInning && !hasBeenBenchedTwiceInFirstFour) {
-                            // If this is first 4 innings and we already have someone benched twice, 
-                            // only allow players who haven't been benched yet
-                            if (isFirstFourInnings && playersBenchedTwiceInFirstFour > 0 && hasBeenBenchedOnceInFirstFour) {
-                                // Skip this player - we already have someone benched twice
+                            // For 13 players: allow one player to be benched twice
+                            // For 12 players: no one should be benched twice
+                            if (isFirstFourInnings && numPlayers === 13 && playersBenchedTwiceInFirstFour > 0 && hasBeenBenchedOnceInFirstFour) {
+                                // Skip this player - we already have someone benched twice (13 players only)
                                 continue;
                             }
                             
@@ -3999,10 +3999,20 @@
                         console.log(`📊 First ${inning} innings summary: ${playersBenchedTwice} benched twice, ${playersBenchedOnce} benched once, ${playersNotBenched} not benched`);
                         
                         if (inning === 4) {
-                            if (playersBenchedTwice === 1 && playersBenchedOnce === 11 && playersNotBenched === 1) {
-                                console.log(`✅ PERFECT: Exactly one player benched twice in first 4 innings`);
-                            } else {
-                                console.error(`❌ FIRST 4 INNINGS VIOLATION: Expected 1 player benched twice, 11 benched once, 1 not benched. Got: ${playersBenchedTwice} twice, ${playersBenchedOnce} once, ${playersNotBenched} not benched`);
+                            if (numPlayers === 13) {
+                                // 13 players: 1 benched twice, 11 benched once, 1 not benched
+                                if (playersBenchedTwice === 1 && playersBenchedOnce === 11 && playersNotBenched === 1) {
+                                    console.log(`✅ PERFECT: Exactly one player benched twice in first 4 innings`);
+                                } else {
+                                    console.error(`❌ FIRST 4 INNINGS VIOLATION: Expected 1 player benched twice, 11 benched once, 1 not benched. Got: ${playersBenchedTwice} twice, ${playersBenchedOnce} once, ${playersNotBenched} not benched`);
+                                }
+                            } else if (numPlayers === 12) {
+                                // 12 players: 0 benched twice, 12 benched once, 0 not benched
+                                if (playersBenchedTwice === 0 && playersBenchedOnce === 12 && playersNotBenched === 0) {
+                                    console.log(`✅ PERFECT: All 12 players benched exactly once in first 4 innings`);
+                                } else {
+                                    console.error(`❌ FIRST 4 INNINGS VIOLATION: Expected 0 benched twice, 12 benched once, 0 not benched. Got: ${playersBenchedTwice} twice, ${playersBenchedOnce} once, ${playersNotBenched} not benched`);
+                                }
                             }
                         }
                     }
