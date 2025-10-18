@@ -4329,14 +4329,18 @@
                 lineupHTML += '</div>';
                 
                 // Show bench if we have more than 9 players
+                console.log(`Inning ${inning} - Bench display check: numPlayers=${numPlayers}, benchedPlayers.size=${benchedPlayers.size}`);
                 if (numPlayers > 9 && benchedPlayers.size > 0) {
                     const benchPlayers = shuffledPlayers.filter(p => benchedPlayers.has(p.id));
+                    console.log(`Inning ${inning} - Displaying bench: ${benchPlayers.map(p => p.name).join(', ')}`);
                     lineupHTML += '<div class="bench-section">';
                     lineupHTML += '<h5>Bench:</h5>';
                     benchPlayers.forEach(player => {
                         lineupHTML += `<div class="bench-player">${player.name}</div>`;
                     });
                     lineupHTML += '</div>';
+                } else {
+                    console.log(`Inning ${inning} - NOT displaying bench: numPlayers=${numPlayers}, benchedPlayers.size=${benchedPlayers.size}`);
                 }
                 
                 lineupHTML += '</div>';
