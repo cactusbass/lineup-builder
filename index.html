@@ -3866,28 +3866,47 @@
                         console.log(`✅ Added ${shuffledPlayers[player.playerIndex].name} to bench (bench count: ${player.usedBenchSlots}/${player.totalBenchSlots})`);
                     }
                     
-                    // If we still need players and have no choice, use any available
+                    // If we still need players, try to find alternatives to avoid consecutive bench
                     if (remainingSlots > 0) {
                         console.warn(`⚠️ WARNING: Need ${remainingSlots} more bench players for inning ${inning}`);
                         
-                        const anyAvailable = benchRotation.filter(player => 
+                        // Try to find players who haven't been benched recently
+                        const alternatives = benchRotation.filter(player => 
                             player.usedBenchSlots < player.totalBenchSlots && 
-                            !usedPlayers.has(player.playerId)
+                            !usedPlayers.has(player.playerId) &&
+                            player.lastBenchedInning < inning - 1 // Not benched last inning
                         );
                         
-                        for (const player of anyAvailable) {
-                            if (remainingSlots <= 0) break;
+                        if (alternatives.length >= remainingSlots) {
+                            console.log(`✅ Found ${alternatives.length} alternatives to avoid consecutive bench`);
+                            for (const player of alternatives) {
+                                if (remainingSlots <= 0) break;
+                                
+                                benchIndices.push(player.playerIndex);
+                                usedPlayers.add(player.playerId);
+                                player.usedBenchSlots++;
+                                player.lastBenchedInning = inning;
+                                remainingSlots--;
+                            }
+                        } else {
+                            // Last resort: reduce bench size to avoid consecutive bench
+                            console.error(`❌ UNAVOIDABLE: Cannot fill ${remainingSlots} bench slots without consecutive bench`);
+                            console.error(`🔧 SOLUTION: Reducing bench size to avoid consecutive bench`);
                             
-                            const wasBenchedLastInning = player.lastBenchedInning === inning - 1;
-                            if (wasBenchedLastInning) {
-                                console.error(`❌ CONSECUTIVE BENCH: ${shuffledPlayers[player.playerIndex].name} will sit consecutive innings`);
+                            // Remove some players from bench to avoid consecutive bench
+                            const playersToRemove = Math.min(remainingSlots, benchIndices.length);
+                            for (let i = 0; i < playersToRemove; i++) {
+                                const removedPlayerIndex = benchIndices.pop();
+                                const removedPlayer = benchRotation.find(p => p.playerIndex === removedPlayerIndex);
+                                if (removedPlayer) {
+                                    removedPlayer.usedBenchSlots--;
+                                    removedPlayer.lastBenchedInning = -1;
+                                }
+                                remainingSlots++;
                             }
                             
-                            benchIndices.push(player.playerIndex);
-                            usedPlayers.add(player.playerId);
-                            player.usedBenchSlots++;
-                            player.lastBenchedInning = inning;
-                            remainingSlots--;
+                            console.log(`🔧 Reduced bench by ${playersToRemove} players to avoid consecutive bench`);
+                            console.log(`🔧 New bench count: ${benchIndices.length} (was ${benchIndices.length + playersToRemove})`);
                         }
                     }
                     
