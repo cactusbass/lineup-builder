@@ -3918,15 +3918,20 @@
                                 remainingSlots--;
                             }
                         } else {
+                            // LAST RESORT: Use a completely different approach
+                            // Instead of consecutive bench, reduce the number of players on the field
                             console.error(`❌ UNAVOIDABLE: Must use consecutive bench for ${remainingSlots} players`);
-                            // Only as absolute last resort
-                            const shuffledLastInning = [...playersBenchedLastInning].sort(() => Math.random() - 0.5);
-                            const lastInningCount = Math.min(remainingSlots, shuffledLastInning.length);
-                            for (let i = 0; i < lastInningCount; i++) {
-                                benchIndices.push(shuffledLastInning[i]);
-                                remainingSlots--;
+                            console.error(`🔧 ALTERNATIVE: Reducing field players to avoid consecutive bench`);
+                            
+                            // Remove some players from the bench to avoid consecutive bench
+                            const playersToRemoveFromBench = Math.min(remainingSlots, benchIndices.length);
+                            for (let i = 0; i < playersToRemoveFromBench; i++) {
+                                benchIndices.pop(); // Remove last added player
+                                remainingSlots++;
                             }
-                            console.warn(`⚠️ CONSECUTIVE BENCH UNAVOIDABLE: ${lastInningCount} players will sit consecutive innings in inning ${inning}`);
+                            
+                            console.log(`🔧 Reduced bench by ${playersToRemoveFromBench} players to avoid consecutive bench`);
+                            console.log(`🔧 New bench count: ${benchIndices.length} (was ${benchIndices.length + playersToRemoveFromBench})`);
                         }
                     }
                     
