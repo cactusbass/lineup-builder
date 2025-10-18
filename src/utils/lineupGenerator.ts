@@ -29,6 +29,7 @@ export class LineupGenerator {
     const innings: InningLineup[] = [];
     const pitcherUsage = new Map<string, number>();
     const playerStats = new Map<string, PlayerLineupStats>();
+    const benchUsage = new Map<string, number>();
 
     // Initialize player stats
     availablePlayers.forEach(player => {
@@ -40,15 +41,21 @@ export class LineupGenerator {
         pitchingInnings: 0,
         totalInnings: 0,
       });
+      benchUsage.set(player.id, 0);
     });
+
+    // Create bench schedule if we have more than 9 players
+    const benchSchedule = this.createBenchSchedule(availablePlayers);
 
     // Generate lineup for each inning
     for (let inning = 1; inning <= this.game.innings; inning++) {
+      const benchedPlayers = benchSchedule[inning - 1] || new Set<string>();
       const inningLineup = this.generateInningLineup(
         availablePlayers, 
         inning, 
         pitcherUsage, 
-        playerStats
+        playerStats,
+        benchedPlayers
       );
       innings.push(inningLineup);
 
@@ -66,6 +73,11 @@ export class LineupGenerator {
           }
         }
       });
+
+      // Update bench usage
+      benchedPlayers.forEach(playerId => {
+        benchUsage.set(playerId, (benchUsage.get(playerId) || 0) + 1);
+      });
     }
 
     return {
@@ -81,14 +93,18 @@ export class LineupGenerator {
     availablePlayers: Player[],
     inning: number,
     pitcherUsage: Map<string, number>,
-    playerStats: Map<string, PlayerLineupStats>
+    playerStats: Map<string, PlayerLineupStats>,
+    benchedPlayers: Set<string>
   ): InningLineup {
     const positions: PositionAssignment[] = [];
     const usedPlayers = new Set<string>();
 
-    // 1. Select pitcher first (respecting rotation rules)
-    const pitcher = this.selectPitcher(availablePlayers, pitcherUsage, usedPlayers);
+    // 1. Select pitcher first (respecting rotation rules and avoiding benched players)
+    const pitcher = this.selectPitcher(availablePlayers, pitcherUsage, usedPlayers, benchedPlayers);
     if (pitcher) {
+      // Handle potential conflict if pitcher was scheduled to be benched
+      this.handlePitcherBenchConflict(pitcher.id, benchedPlayers, availablePlayers, usedPlayers);
+      
       positions.push({
         position: 'P',
         playerId: pitcher.id,
@@ -98,8 +114,8 @@ export class LineupGenerator {
       pitcherUsage.set(pitcher.id, (pitcherUsage.get(pitcher.id) || 0) + 1);
     }
 
-    // 2. Select catcher
-    const catcher = this.selectCatcher(availablePlayers, usedPlayers);
+    // 2. Select catcher (avoiding benched players)
+    const catcher = this.selectCatcher(availablePlayers, usedPlayers, benchedPlayers);
     if (catcher) {
       positions.push({
         position: 'C',
@@ -111,7 +127,9 @@ export class LineupGenerator {
 
     // 3. Fill remaining positions
     const remainingPositions: Position[] = ['1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
-    const remainingPlayers = availablePlayers.filter(p => !usedPlayers.has(p.id));
+    const remainingPlayers = availablePlayers.filter(p => 
+      !usedPlayers.has(p.id) && !benchedPlayers.has(p.id)
+    );
 
     // Try to apply player combinations first
     this.applyPlayerCombinations(positions, remainingPlayers, usedPlayers);
@@ -145,10 +163,14 @@ export class LineupGenerator {
   private selectPitcher(
     availablePlayers: Player[],
     pitcherUsage: Map<string, number>,
-    usedPlayers: Set<string>
+    usedPlayers: Set<string>,
+    benchedPlayers: Set<string>
   ): Player | null {
     const pitchers = availablePlayers.filter(p => 
-      p.isPitcher && !usedPlayers.has(p.id) && !p.excludedPositions.includes('P')
+      p.isPitcher && 
+      !usedPlayers.has(p.id) && 
+      !benchedPlayers.has(p.id) &&
+      !p.excludedPositions.includes('P')
     );
 
     if (pitchers.length === 0) return null;
@@ -170,16 +192,22 @@ export class LineupGenerator {
 
   private selectCatcher(
     availablePlayers: Player[],
-    usedPlayers: Set<string>
+    usedPlayers: Set<string>,
+    benchedPlayers: Set<string>
   ): Player | null {
     const catchers = availablePlayers.filter(p => 
-      p.isCatcher && !usedPlayers.has(p.id) && !p.excludedPositions.includes('C')
+      p.isCatcher && 
+      !usedPlayers.has(p.id) && 
+      !benchedPlayers.has(p.id) &&
+      !p.excludedPositions.includes('C')
     );
 
     if (catchers.length === 0) {
       // If no designated catchers, find any player who can catch
       const anyPlayer = availablePlayers.find(p => 
-        !usedPlayers.has(p.id) && !p.excludedPositions.includes('C')
+        !usedPlayers.has(p.id) && 
+        !benchedPlayers.has(p.id) &&
+        !p.excludedPositions.includes('C')
       );
       return anyPlayer || null;
     }
@@ -246,6 +274,104 @@ export class LineupGenerator {
         }
       }
     });
+  }
+
+  private createBenchSchedule(availablePlayers: Player[]): Set<string>[] {
+    const numPlayers = availablePlayers.length;
+    const innings = this.game.innings;
+    
+    // If 9 or fewer players, no bench needed
+    if (numPlayers <= 9) {
+      return Array(innings).fill(new Set<string>());
+    }
+
+    const playersToBenchPerInning = numPlayers - 9;
+    const benchSchedule: Set<string>[] = [];
+    
+    // Track which players have been benched to ensure fair rotation
+    const playersBenched = new Set<string>();
+    const playersBenchedTwice = new Set<string>();
+    
+    for (let inning = 1; inning <= innings; inning++) {
+      const benchIndices = new Set<string>();
+      
+      // First priority: Players who haven't been benched yet
+      const playersNeverBenched = availablePlayers.filter(p => !playersBenched.has(p.id));
+      
+      // Second priority: Players who have been benched once (but not twice)
+      const playersBenchedOnce = availablePlayers.filter(p => 
+        playersBenched.has(p.id) && !playersBenchedTwice.has(p.id)
+      );
+      
+      // Third priority: Players who have been benched twice (if necessary)
+      const playersBenchedTwiceList = availablePlayers.filter(p => 
+        playersBenchedTwice.has(p.id)
+      );
+      
+      let remainingSlots = playersToBenchPerInning;
+      
+      // Fill with never benched players first
+      const neverBenchedCount = Math.min(remainingSlots, playersNeverBenched.length);
+      for (let i = 0; i < neverBenchedCount; i++) {
+        const player = playersNeverBenched[i];
+        benchIndices.add(player.id);
+        playersBenched.add(player.id);
+        remainingSlots--;
+      }
+      
+      // Fill with once benched players
+      const benchedOnceCount = Math.min(remainingSlots, playersBenchedOnce.length);
+      for (let i = 0; i < benchedOnceCount; i++) {
+        const player = playersBenchedOnce[i];
+        benchIndices.add(player.id);
+        playersBenchedTwice.add(player.id);
+        remainingSlots--;
+      }
+      
+      // Fill with twice benched players if necessary
+      if (remainingSlots > 0) {
+        const shuffledBenchedTwice = [...playersBenchedTwiceList].sort(() => Math.random() - 0.5);
+        const benchedTwiceCount = Math.min(remainingSlots, shuffledBenchedTwice.length);
+        for (let i = 0; i < benchedTwiceCount; i++) {
+          benchIndices.add(shuffledBenchedTwice[i].id);
+          remainingSlots--;
+        }
+      }
+      
+      benchSchedule.push(benchIndices);
+    }
+    
+    return benchSchedule;
+  }
+
+  /**
+   * Handles conflicts when a manually selected pitcher was scheduled to be benched.
+   * This method adjusts the bench schedule to maintain fair rotation.
+   */
+  private handlePitcherBenchConflict(
+    pitcherId: string,
+    benchedPlayers: Set<string>,
+    availablePlayers: Player[],
+    usedPlayers: Set<string>
+  ): void {
+    if (benchedPlayers.has(pitcherId)) {
+      // Remove the pitcher from the bench
+      benchedPlayers.delete(pitcherId);
+      
+      // Find a replacement player for the bench
+      const availableForBench = availablePlayers.filter(p => 
+        !usedPlayers.has(p.id) && 
+        !benchedPlayers.has(p.id) &&
+        p.id !== pitcherId
+      );
+      
+      if (availableForBench.length > 0) {
+        // Select a replacement player (prefer non-pitchers to avoid further conflicts)
+        const nonPitchers = availableForBench.filter(p => !p.isPitcher);
+        const replacementPlayer = nonPitchers.length > 0 ? nonPitchers[0] : availableForBench[0];
+        benchedPlayers.add(replacementPlayer.id);
+      }
+    }
   }
 }
 
