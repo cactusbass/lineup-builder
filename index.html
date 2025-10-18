@@ -3900,24 +3900,35 @@
                                 remainingSlots--;
                             }
                         } else {
-                            // Last resort: reduce bench size to avoid consecutive bench
-                            console.error(`❌ UNAVOIDABLE: Cannot fill ${remainingSlots} bench slots without consecutive bench`);
-                            console.error(`🔧 SOLUTION: Reducing bench size to avoid consecutive bench`);
+                            // Last resort: Allow consecutive bench but log it as a warning
+                            console.warn(`⚠️ WARNING: Cannot avoid consecutive bench for ${remainingSlots} players`);
+                            console.warn(`🔧 FALLBACK: Allowing consecutive bench to maintain fair rotation`);
                             
-                            // Remove some players from bench to avoid consecutive bench
-                            const playersToRemove = Math.min(remainingSlots, benchIndices.length);
-                            for (let i = 0; i < playersToRemove; i++) {
-                                const removedPlayerIndex = benchIndices.pop();
-                                const removedPlayer = benchRotation.find(p => p.playerIndex === removedPlayerIndex);
-                                if (removedPlayer) {
-                                    removedPlayer.usedBenchSlots--;
-                                    removedPlayer.lastBenchedInning = -1;
+                            // Find any available players, even if they were benched last inning
+                            const anyAvailable = benchRotation.filter(player => 
+                                player.usedBenchSlots < player.totalBenchSlots && 
+                                !usedPlayers.has(player.playerId)
+                            );
+                            
+                            for (const player of anyAvailable) {
+                                if (remainingSlots <= 0) break;
+                                
+                                const wasBenchedLastInning = player.lastBenchedInning === inning - 1;
+                                if (wasBenchedLastInning) {
+                                    console.warn(`⚠️ ALLOWING CONSECUTIVE BENCH: ${shuffledPlayers[player.playerIndex].name} will sit consecutive innings`);
                                 }
-                                remainingSlots++;
+                                
+                                benchIndices.push(player.playerIndex);
+                                usedPlayers.add(player.playerId);
+                                player.usedBenchSlots++;
+                                player.lastBenchedInning = inning;
+                                remainingSlots--;
                             }
                             
-                            console.log(`🔧 Reduced bench by ${playersToRemove} players to avoid consecutive bench`);
-                            console.log(`🔧 New bench count: ${benchIndices.length} (was ${benchIndices.length + playersToRemove})`);
+                            // If we still can't fill the bench, that's a critical error
+                            if (remainingSlots > 0) {
+                                console.error(`❌ CRITICAL: Cannot fill ${remainingSlots} bench slots even with consecutive bench allowed`);
+                            }
                         }
                     }
                     
