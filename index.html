@@ -3834,12 +3834,20 @@
                 }
                 
                 // Calculate how many times each player should be benched for fairness
-                // With 13 players and 20 total bench slots, each player should get 1-2 bench appearances
-                const baseBenchCount = Math.floor(totalBenchSlots / numPlayers);
-                const extraBenchCount = totalBenchSlots % numPlayers;
+                // OPTIMIZATION: No player should be benched twice in first 4 innings
+                const firstFourInnings = Math.min(4, innings);
+                const firstFourBenchSlots = firstFourInnings * playersToBenchPerInning;
+                const remainingInnings = Math.max(0, innings - 4);
+                const remainingBenchSlots = remainingInnings * playersToBenchPerInning;
                 
-                console.log(`📊 Fair bench distribution: ${baseBenchCount} base + ${extraBenchCount} extra = ${totalBenchSlots} total slots`);
-                console.log(`📊 Each player should get ${baseBenchCount} bench appearances, ${extraBenchCount} players get ${baseBenchCount + 1}`);
+                console.log(`📊 OPTIMIZED BENCH DISTRIBUTION:`);
+                console.log(`📊 First 4 innings: ${firstFourBenchSlots} bench slots, ${numPlayers} players (each benched max once)`);
+                console.log(`📊 Remaining innings: ${remainingBenchSlots} bench slots for fair distribution`);
+                
+                // For first 4 innings: each player benched at most once
+                // For remaining innings: fair distribution of remaining slots
+                const baseBenchCount = Math.floor(remainingBenchSlots / numPlayers);
+                const extraBenchCount = remainingBenchSlots % numPlayers;
                 
                 console.log(`📊 Bench distribution: ${baseBenchCount} base + ${extraBenchCount} extra slots`);
                 
@@ -3858,7 +3866,17 @@
                     const candidates = [];
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
-                        const maxAllowedBench = baseBenchCount + (i < extraBenchCount ? 1 : 0);
+                        
+                        // Different bench limits for first 4 innings vs remaining innings
+                        let maxAllowedBench;
+                        if (inning <= 4) {
+                            // First 4 innings: each player can only be benched once
+                            maxAllowedBench = 1;
+                        } else {
+                            // Remaining innings: fair distribution
+                            maxAllowedBench = baseBenchCount + (i < extraBenchCount ? 1 : 0);
+                        }
+                        
                         const hasReachedBenchLimit = playerBenchCount[i] >= maxAllowedBench;
                         
                         if (!wasBenchedLastInning && !hasReachedBenchLimit) {
@@ -3957,9 +3975,25 @@
                     
                     // Verify fair bench distribution
                     for (const playerIndex of benchIndices) {
-                        const maxAllowed = baseBenchCount + (playerIndex < extraBenchCount ? 1 : 0);
+                        let maxAllowed;
+                        if (inning <= 4) {
+                            maxAllowed = 1; // First 4 innings: max 1 bench per player
+                        } else {
+                            maxAllowed = baseBenchCount + (playerIndex < extraBenchCount ? 1 : 0);
+                        }
+                        
                         if (playerBenchCount[playerIndex] > maxAllowed) {
                             console.error(`❌ UNFAIR BENCH: ${shuffledPlayers[playerIndex].name} benched ${playerBenchCount[playerIndex]} times (max: ${maxAllowed})`);
+                        }
+                    }
+                    
+                    // Special validation for first 4 innings
+                    if (inning <= 4) {
+                        const playersBenchedTwice = benchIndices.filter(i => playerBenchCount[i] > 1);
+                        if (playersBenchedTwice.length > 0) {
+                            console.error(`❌ FIRST 4 INNINGS VIOLATION: Players benched twice: ${playersBenchedTwice.map(i => shuffledPlayers[i].name).join(', ')}`);
+                        } else {
+                            console.log(`✅ First 4 innings rule: No player benched twice in first ${inning} innings`);
                         }
                     }
                     
