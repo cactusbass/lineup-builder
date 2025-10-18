@@ -3872,6 +3872,15 @@
                         benchedTwiceCount: benchedTwiceCount,
                         totalSelected: benchIndices.length
                     });
+                    
+                    // Track bench rotation for debugging
+                    console.log(`Inning ${inning} bench rotation tracking:`, {
+                        playersBenched: Array.from(playersBenched),
+                        playersBenchedTwice: Array.from(playersBenchedTwice),
+                        neverBenched: playersNeverBenched.length,
+                        benchedOnce: playersBenchedOnce.length,
+                        benchedTwice: playersBenchedTwiceList.length
+                    });
                 }
             }
             
@@ -3896,6 +3905,7 @@
                     });
                     console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
                     console.log(`Inning ${inning} - Final bench count: ${benchedPlayers.size}`);
+                    console.log(`Inning ${inning} - Final bench players:`, benchedThisInning.map(p => p.name));
                 } else {
                     console.log(`Inning ${inning} - No bench assignment: numPlayers=${numPlayers}, benchSchedule.length=${benchSchedule.length}`);
                 }
@@ -4248,6 +4258,10 @@
                 
                 console.log(`Inning ${inning} lineup:`, inningLineup);
                 console.log(`Inning ${inning} used players:`, Array.from(usedPlayers).map(id => shuffledPlayers.find(p => p.id === id).name));
+                
+                // Track bench usage summary
+                const benchedThisInningNames = Array.from(benchedPlayers).map(id => shuffledPlayers.find(p => p.id === id)?.name);
+                console.log(`Inning ${inning} BENCH SUMMARY:`, benchedThisInningNames);
             }
             
             // Add usage statistics
