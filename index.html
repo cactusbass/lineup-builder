@@ -3834,10 +3834,10 @@
                 // Shuffle for randomness
                 benchRotation.sort(() => Math.random() - 0.5);
                 
-                // ULTRA-SIMPLE BENCH ROTATION ALGORITHM
-                console.log(`🎯 ULTRA-SIMPLE BENCH ROTATION ALGORITHM`);
+                // SMART BENCH ROTATION ALGORITHM - FOCUS ON FIRST 4 INNINGS
+                console.log(`🎯 SMART BENCH ROTATION ALGORITHM - FOCUS ON FIRST 4 INNINGS`);
 
-                // Create a completely simple bench schedule
+                // Create a smart bench schedule that prioritizes first 4 innings fairness
                 const playerBenchCount = {}; // Track how many times each player has been benched
                 const playerLastBenched = {}; // Track when each player was last benched
 
@@ -3847,10 +3847,11 @@
                     playerLastBenched[i] = -1;
                 }
 
-                console.log(`📊 Ultra-simple approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
+                console.log(`📊 Smart approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
+                console.log(`🎯 PRIORITY: First 4 innings - everyone plays at least 3 innings`);
 
                 for (let inning = 1; inning <= innings; inning++) {
-                    console.log(`\n🎯 INNING ${inning} - ULTRA-SIMPLE BENCH SELECTION`);
+                    console.log(`\n🎯 INNING ${inning} - SMART BENCH SELECTION`);
 
                     const benchIndices = [];
                     let remainingSlots = playersToBenchPerInning;
@@ -3859,28 +3860,29 @@
                     const lastInningBenched = inning > 1 ? benchSchedule[inning - 2] : [];
                     console.log(`🚫 Players benched last inning (avoiding): ${lastInningBenched.map(i => shuffledPlayers[i].name).join(', ')}`);
 
-                    // Create candidate list: players who haven't been benched last inning
+                    // Create candidate list with smart constraints
                     const candidates = [];
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
                         
-                        // For first 4 innings: ensure everyone plays at least 3 innings
+                        // For first 4 innings: prioritize players who have already played enough
                         const isFirstFourInnings = inning <= 4;
                         const playingInnings = inning - playerBenchCount[i];
-                        const needsMorePlayingTime = isFirstFourInnings && playingInnings < 3;
+                        const hasPlayedEnough = !isFirstFourInnings || playingInnings >= 3;
                         
-                        if (!wasBenchedLastInning && !needsMorePlayingTime) {
+                        if (!wasBenchedLastInning && hasPlayedEnough) {
                             candidates.push({
                                 index: i,
                                 benchCount: playerBenchCount[i],
                                 lastBenched: playerLastBenched[i],
-                                name: shuffledPlayers[i].name
+                                name: shuffledPlayers[i].name,
+                                playingInnings: playingInnings
                             });
                         }
                     }
 
                     console.log(`✅ Available candidates: ${candidates.length} (need ${remainingSlots})`);
-                    console.log(`📋 Candidates: ${candidates.map(c => `${c.name}(${c.benchCount})`).join(', ')}`);
+                    console.log(`📋 Candidates: ${candidates.map(c => `${c.name}(${c.benchCount} bench, ${c.playingInnings} playing)`).join(', ')}`);
 
                     // Sort candidates by priority: never benched > benched fewer times
                     candidates.sort((a, b) => {
