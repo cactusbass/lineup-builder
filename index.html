@@ -3825,6 +3825,12 @@
                     
                     console.log(`Inning ${inning} - Creating bench rotation...`);
                     
+                    // Log current bench status for fairness tracking
+                    const neverBenched = benchRotation.filter(p => p.usedBenchSlots === 0);
+                    const benchedOnce = benchRotation.filter(p => p.usedBenchSlots === 1);
+                    const benchedTwice = benchRotation.filter(p => p.usedBenchSlots === 2);
+                    console.log(`Inning ${inning} - Bench fairness: Never benched: ${neverBenched.length}, Benched once: ${benchedOnce.length}, Benched twice: ${benchedTwice.length}`);
+                    
                     // NEW ALGORITHM: Select players for bench, absolutely preventing consecutive bench
                     let remainingSlots = playersToBenchPerInning;
                     
@@ -3836,11 +3842,16 @@
                     
                     // Sort by priority: never benched first, then by last benched inning
                     availablePlayers.sort((a, b) => {
-                        // Never benched players first
+                        // STRICT FAIRNESS: Never benched players get absolute priority
                         if (a.usedBenchSlots === 0 && b.usedBenchSlots > 0) return -1;
                         if (b.usedBenchSlots === 0 && a.usedBenchSlots > 0) return 1;
                         
-                        // Then by last benched inning (earlier is better)
+                        // Among never-benched players, randomize
+                        if (a.usedBenchSlots === 0 && b.usedBenchSlots === 0) {
+                            return Math.random() - 0.5;
+                        }
+                        
+                        // Among players who have been benched, prioritize those benched earlier
                         return a.lastBenchedInning - b.lastBenchedInning;
                     });
                     
