@@ -3834,8 +3834,12 @@
                 }
                 
                 // Calculate how many times each player should be benched for fairness
+                // With 13 players and 20 total bench slots, each player should get 1-2 bench appearances
                 const baseBenchCount = Math.floor(totalBenchSlots / numPlayers);
                 const extraBenchCount = totalBenchSlots % numPlayers;
+                
+                console.log(`📊 Fair bench distribution: ${baseBenchCount} base + ${extraBenchCount} extra = ${totalBenchSlots} total slots`);
+                console.log(`📊 Each player should get ${baseBenchCount} bench appearances, ${extraBenchCount} players get ${baseBenchCount + 1}`);
                 
                 console.log(`📊 Bench distribution: ${baseBenchCount} base + ${extraBenchCount} extra slots`);
                 
@@ -3854,12 +3858,14 @@
                     const candidates = [];
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
-                        const hasReachedBenchLimit = playerBenchCount[i] >= (baseBenchCount + (i < extraBenchCount ? 1 : 0));
+                        const maxAllowedBench = baseBenchCount + (i < extraBenchCount ? 1 : 0);
+                        const hasReachedBenchLimit = playerBenchCount[i] >= maxAllowedBench;
                         
                         if (!wasBenchedLastInning && !hasReachedBenchLimit) {
                             candidates.push({
                                 index: i,
                                 benchCount: playerBenchCount[i],
+                                maxAllowed: maxAllowedBench,
                                 lastBenched: playerLastBenched[i],
                                 name: shuffledPlayers[i].name
                             });
@@ -3948,6 +3954,14 @@
                     benchSchedule.push(benchIndices);
                     console.log(`📊 Inning ${inning} final bench: ${benchIndices.map(i => shuffledPlayers[i].name).join(', ')}`);
                     console.log(`📊 Bench count: ${benchIndices.length}/${playersToBenchPerInning}`);
+                    
+                    // Verify fair bench distribution
+                    for (const playerIndex of benchIndices) {
+                        const maxAllowed = baseBenchCount + (playerIndex < extraBenchCount ? 1 : 0);
+                        if (playerBenchCount[playerIndex] > maxAllowed) {
+                            console.error(`❌ UNFAIR BENCH: ${shuffledPlayers[playerIndex].name} benched ${playerBenchCount[playerIndex]} times (max: ${maxAllowed})`);
+                        }
+                    }
                     
                     // Verify no consecutive bench
                     if (inning > 1) {
