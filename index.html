@@ -3802,26 +3802,29 @@
                 for (let inning = 1; inning <= innings; inning++) {
                     const benchIndices = [];
                     
-                    // First priority: Players who haven't been benched yet
+                    // First priority: Players who haven't been benched yet (by player ID)
                     const playersNeverBenched = [];
                     for (let i = 0; i < numPlayers; i++) {
-                        if (!playersBenched.has(i)) {
+                        const playerId = shuffledPlayers[i].id;
+                        if (!playersBenched.has(playerId)) {
                             playersNeverBenched.push(i);
                         }
                     }
                     
-                    // Second priority: Players who have been benched once (but not twice)
+                    // Second priority: Players who have been benched once (but not twice) (by player ID)
                     const playersBenchedOnce = [];
                     for (let i = 0; i < numPlayers; i++) {
-                        if (playersBenched.has(i) && !playersBenchedTwice.has(i)) {
+                        const playerId = shuffledPlayers[i].id;
+                        if (playersBenched.has(playerId) && !playersBenchedTwice.has(playerId)) {
                             playersBenchedOnce.push(i);
                         }
                     }
                     
-                    // Third priority: Players who have been benched twice (if necessary)
+                    // Third priority: Players who have been benched twice (if necessary) (by player ID)
                     const playersBenchedTwiceList = [];
                     for (let i = 0; i < numPlayers; i++) {
-                        if (playersBenchedTwice.has(i)) {
+                        const playerId = shuffledPlayers[i].id;
+                        if (playersBenchedTwice.has(playerId)) {
                             playersBenchedTwiceList.push(i);
                         }
                     }
@@ -3836,8 +3839,9 @@
                     const shuffledNeverBenched = [...playersNeverBenched].sort(() => Math.random() - 0.5);
                     neverBenchedCount = Math.min(remainingSlots, shuffledNeverBenched.length);
                     for (let i = 0; i < neverBenchedCount; i++) {
-                        benchIndices.push(shuffledNeverBenched[i]);
-                        playersBenched.add(shuffledNeverBenched[i]);
+                        const playerIndex = shuffledNeverBenched[i];
+                        benchIndices.push(playerIndex);
+                        playersBenched.add(shuffledPlayers[playerIndex].id);
                         remainingSlots--;
                     }
                     
@@ -3846,8 +3850,9 @@
                         const shuffledBenchedOnce = [...playersBenchedOnce].sort(() => Math.random() - 0.5);
                         benchedOnceCount = Math.min(remainingSlots, shuffledBenchedOnce.length);
                         for (let i = 0; i < benchedOnceCount; i++) {
-                            benchIndices.push(shuffledBenchedOnce[i]);
-                            playersBenchedTwice.add(shuffledBenchedOnce[i]);
+                            const playerIndex = shuffledBenchedOnce[i];
+                            benchIndices.push(playerIndex);
+                            playersBenchedTwice.add(shuffledPlayers[playerIndex].id);
                             remainingSlots--;
                         }
                     }
@@ -5457,7 +5462,7 @@
                     
                     if (savedInnings === gameInnings) {
                         // If this game has a saved lineup with matching innings, show it
-                        viewSavedLineup(currentGameDetail.id);
+                    viewSavedLineup(currentGameDetail.id);
                     } else {
                         // If innings don't match, clear the old lineup and show message
                         currentGameDetail.generatedLineup = null;
