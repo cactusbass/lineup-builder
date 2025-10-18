@@ -1311,8 +1311,21 @@
                             <li><strong>8 players = no bench</strong> - Perfect setup: 8 players, 8 positions (P, C, 1B, 2B, SS, 3B, LF, RF)</li>                                                                          
                             <li><strong>9 players = no bench</strong> - Perfect setup: 9 players, 9 positions, everyone plays all innings</li>                                                                          
                             <li><strong>10+ players = bench time</strong> - Balanced bench rotation with fair distribution</li>                                                                                         
-                            <li><strong>Fair bench distribution</strong> - No player sits 3 innings while others sit only 1</li>                                                                                        
-                            <li><strong>Catcher availability priority</strong> - Ensure at least one catcher is always available</li>                                                                                   
+                            <li><strong>Anti-consecutive bench priority</strong> - Players benched last inning are avoided when possible</li>                                                                                        
+                            <li><strong>Fairness prioritization</strong> - Never-benched players get priority over previously benched players</li>                                                                                   
+                            <li><strong>Robust fallback system</strong> - If consecutive bench is unavoidable, it's allowed with clear warnings</li>                                                                                   
+                            <li><strong>Always completes successfully</strong> - Algorithm never fails to fill bench slots</li>                                                                                   
+                        </ol>
+                    </div>
+                    
+                    <div class="rule-category">
+                        <h3>🔄 Bench Rotation Algorithm</h3>
+                        <ol>
+                            <li><strong>Step 1: Avoid consecutive bench</strong> - Exclude players who were benched in the previous inning</li>
+                            <li><strong>Step 2: Prioritize fairness</strong> - Never-benched players get absolute priority over previously benched players</li>
+                            <li><strong>Step 3: Randomize among equals</strong> - Among players with same bench count, selection is randomized</li>
+                            <li><strong>Step 4: Fallback mechanism</strong> - If consecutive bench is unavoidable, allow it with clear warnings</li>
+                            <li><strong>Step 5: Always succeed</strong> - Algorithm guarantees all bench slots are filled every inning</li>
                         </ol>
                     </div>
                     
