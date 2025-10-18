@@ -3823,7 +3823,7 @@
                 console.log(`🎯 STRICT ANTI-CONSECUTIVE BENCH ALGORITHM`);
                 
                 // Create a comprehensive bench schedule that absolutely prevents consecutive bench
-                const benchSchedule = [];
+                // benchSchedule is already declared above
                 const playerBenchCount = {}; // Track how many times each player has been benched
                 const playerLastBenched = {}; // Track when each player was last benched
                 
@@ -3970,6 +3970,7 @@
             }
             
             // Create a balanced rotation that ensures infield/outfield balance
+            console.log(`🎯 Starting lineup generation with benchSchedule.length: ${benchSchedule.length}`);
             for (let inning = 1; inning <= innings; inning++) {
                 const inningLineup = {};
                 const usedPlayers = new Set(); // Track players used in this inning
