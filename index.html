@@ -4021,6 +4021,7 @@
             
             // Create a balanced rotation that ensures infield/outfield balance
             console.log(`🎯 Starting lineup generation with benchSchedule.length: ${benchSchedule.length}`);
+            console.log(`🎯 Bench schedule contents:`, benchSchedule);
             for (let inning = 1; inning <= innings; inning++) {
                 const inningLineup = {};
                 const usedPlayers = new Set(); // Track players used in this inning
@@ -4032,16 +4033,20 @@
                     const benchIndices = benchSchedule[inning - 1];
                     console.log(`Inning ${inning} - benchIndices:`, benchIndices);
                     console.log(`Inning ${inning} - Expected bench count: ${playersToBenchPerInning}, Actual bench indices: ${benchIndices.length}`);
-                    const benchedThisInning = benchIndices.map(index => shuffledPlayers[index]);
-                    console.log(`Inning ${inning} - benchedThisInning:`, benchedThisInning.map(p => p.name));
-                    benchedThisInning.forEach(player => {
-                        benchedPlayers.add(player.id);
-                        benchUsage[player.id]++;
-                        console.log(`Inning ${inning} - Added ${player.name} to bench`);
-                    });
-                    console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
-                    console.log(`Inning ${inning} - Final bench count: ${benchedPlayers.size}`);
-                    console.log(`Inning ${inning} - Final bench players:`, benchedThisInning.map(p => p.name));
+                    if (benchIndices && benchIndices.length > 0) {
+                        const benchedThisInning = benchIndices.map(index => shuffledPlayers[index]);
+                        console.log(`Inning ${inning} - benchedThisInning:`, benchedThisInning.map(p => p.name));
+                        benchedThisInning.forEach(player => {
+                            benchedPlayers.add(player.id);
+                            benchUsage[player.id]++;
+                            console.log(`Inning ${inning} - Added ${player.name} to bench`);
+                        });
+                        console.log(`Inning ${inning} - benchedPlayers after assignment:`, Array.from(benchedPlayers));
+                        console.log(`Inning ${inning} - Final bench count: ${benchedPlayers.size}`);
+                        console.log(`Inning ${inning} - Final bench players:`, benchedThisInning.map(p => p.name));
+                    } else {
+                        console.log(`Inning ${inning} - No bench indices for this inning`);
+                    }
                 } else {
                     console.log(`Inning ${inning} - No bench assignment: numPlayers=${numPlayers}, benchSchedule.length=${benchSchedule.length}`);
                 }
