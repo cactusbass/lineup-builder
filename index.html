@@ -3834,10 +3834,10 @@
                 // Shuffle for randomness
                 benchRotation.sort(() => Math.random() - 0.5);
                 
-                // SMART BENCH ROTATION ALGORITHM - 13 PLAYERS
-                console.log(`🎯 SMART BENCH ROTATION ALGORITHM - 13 PLAYERS`);
+                // PRACTICAL BENCH ROTATION ALGORITHM
+                console.log(`🎯 PRACTICAL BENCH ROTATION ALGORITHM`);
 
-                // Create a smart bench schedule for 13 players
+                // Create a practical bench schedule that balances fairness with mathematical constraints
                 const playerBenchCount = {}; // Track how many times each player has been benched
                 const playerLastBenched = {}; // Track when each player was last benched
 
@@ -3847,68 +3847,51 @@
                     playerLastBenched[i] = -1;
                 }
 
-                console.log(`📊 Smart approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
-                console.log(`🎯 GOAL: Avoid consecutive bench, be fair, always succeed`);
+                console.log(`📊 Practical approach: ${playersToBenchPerInning} players benched per inning, ${innings} innings total`);
+                console.log(`🎯 GOAL: Minimize consecutive bench, be fair, always succeed`);
                 console.log(`📊 With ${numPlayers} players: ${numPlayers - 9} players sit each inning`);
-                console.log(`🎯 FIRST 4 INNINGS: With ${numPlayers} players, everyone sits exactly once (total: ${numPlayers} bench appearances)`);
 
                 for (let inning = 1; inning <= innings; inning++) {
-                    console.log(`\n🎯 INNING ${inning} - WORKING BENCH SELECTION`);
+                    console.log(`\n🎯 INNING ${inning} - PRACTICAL BENCH SELECTION`);
 
                     const benchIndices = [];
                     let remainingSlots = playersToBenchPerInning;
 
-                    // Get players who were benched last inning (to avoid them)
+                    // Get players who were benched last inning (to minimize consecutive bench)
                     const lastInningBenched = inning > 1 ? benchSchedule[inning - 2] : [];
-                    console.log(`🚫 Players benched last inning (avoiding): ${lastInningBenched.map(i => shuffledPlayers[i].name).join(', ')}`);
+                    console.log(`🚫 Players benched last inning (prefer to avoid): ${lastInningBenched.map(i => shuffledPlayers[i].name).join(', ')}`);
 
-                    // Create candidate list: players who haven't been benched last inning
+                    // Create candidate list with priority system
                     const candidates = [];
                     for (let i = 0; i < numPlayers; i++) {
                         const wasBenchedLastInning = lastInningBenched.includes(i);
+                        const benchCount = playerBenchCount[i];
                         
-                        // For first 4 innings: handle different player counts
-                        const isFirstFourInnings = inning <= 4;
-                        const hasBeenBenchedTwiceInFirstFour = isFirstFourInnings && playerBenchCount[i] >= 2;
-                        const hasBeenBenchedOnceInFirstFour = isFirstFourInnings && playerBenchCount[i] >= 1;
-                        
-                        // Count how many players have been benched twice in first 4 innings
-                        let playersBenchedTwiceInFirstFour = 0;
-                        if (isFirstFourInnings) {
-                            for (let j = 0; j < numPlayers; j++) {
-                                if (playerBenchCount[j] >= 2) {
-                                    playersBenchedTwiceInFirstFour++;
-                                }
-                            }
+                        // Calculate priority score (lower is better)
+                        let priority = benchCount * 10; // Never benched = 0, benched once = 10, etc.
+                        if (wasBenchedLastInning) {
+                            priority += 5; // Penalty for consecutive bench, but not impossible
                         }
                         
-                        if (!wasBenchedLastInning && !hasBeenBenchedTwiceInFirstFour) {
-                            // For 13 players: allow one player to be benched twice
-                            // For 12 players: no one should be benched twice
-                            if (isFirstFourInnings && numPlayers === 13 && playersBenchedTwiceInFirstFour > 0 && hasBeenBenchedOnceInFirstFour) {
-                                // Skip this player - we already have someone benched twice (13 players only)
-                                continue;
-                            }
-                            
-                            candidates.push({
-                                index: i,
-                                benchCount: playerBenchCount[i],
-                                lastBenched: playerLastBenched[i],
-                                name: shuffledPlayers[i].name
-                            });
-                        }
+                        candidates.push({
+                            index: i,
+                            benchCount: benchCount,
+                            lastBenched: playerLastBenched[i],
+                            name: shuffledPlayers[i].name,
+                            wasBenchedLastInning: wasBenchedLastInning,
+                            priority: priority
+                        });
                     }
 
                     console.log(`✅ Available candidates: ${candidates.length} (need ${remainingSlots})`);
-                    console.log(`📋 Candidates: ${candidates.map(c => `${c.name}(${c.benchCount})`).join(', ')}`);
+                    console.log(`📋 Candidates: ${candidates.map(c => `${c.name}(${c.benchCount}, priority:${c.priority})`).join(', ')}`);
 
-                    // Sort candidates by priority: never benched > benched fewer times
+                    // Sort candidates by priority: never benched > benched fewer times > avoid consecutive
                     candidates.sort((a, b) => {
-                        // Never benched players get priority
-                        if (a.benchCount === 0 && b.benchCount > 0) return -1;
-                        if (b.benchCount === 0 && a.benchCount > 0) return 1;
-                        
-                        // Among players with same bench count, randomize
+                        if (a.priority !== b.priority) {
+                            return a.priority - b.priority;
+                        }
+                        // Among players with same priority, randomize
                         return Math.random() - 0.5;
                     });
 
@@ -3921,40 +3904,26 @@
                         playerLastBenched[candidate.index] = inning;
                         remainingSlots--;
 
-                        console.log(`✅ Selected ${candidate.name} for bench (bench count: ${playerBenchCount[candidate.index]})`);
+                        if (candidate.wasBenchedLastInning) {
+                            console.log(`⚠️ CONSECUTIVE BENCH: ${candidate.name} was benched last inning (priority: ${candidate.priority})`);
+                        } else {
+                            console.log(`✅ Selected ${candidate.name} for bench (bench count: ${playerBenchCount[candidate.index]}, priority: ${candidate.priority})`);
+                        }
                     }
 
-                    // If we still need players, allow consecutive bench as fallback
+                    // If we still need players (shouldn't happen with this algorithm)
                     if (remainingSlots > 0) {
-                        console.warn(`⚠️ FALLBACK: Need ${remainingSlots} more players, allowing consecutive bench`);
+                        console.error(`❌ CRITICAL: Still need ${remainingSlots} more players! This should not happen.`);
                         
-                        // Find any available players
-                        const fallbackCandidates = [];
+                        // Emergency fallback - select any remaining players
                         for (let i = 0; i < numPlayers; i++) {
-                            if (!benchIndices.includes(i)) {
-                                fallbackCandidates.push({
-                                    index: i,
-                                    benchCount: playerBenchCount[i],
-                                    lastBenched: playerLastBenched[i],
-                                    name: shuffledPlayers[i].name,
-                                    wasBenchedLastInning: lastInningBenched.includes(i)
-                                });
+                            if (!benchIndices.includes(i) && remainingSlots > 0) {
+                                benchIndices.push(i);
+                                playerBenchCount[i]++;
+                                playerLastBenched[i] = inning;
+                                remainingSlots--;
+                                console.error(`🚨 EMERGENCY: Added ${shuffledPlayers[i].name} to bench`);
                             }
-                        }
-
-                        for (const candidate of fallbackCandidates) {
-                            if (remainingSlots <= 0) break;
-
-                            if (candidate.wasBenchedLastInning) {
-                                console.warn(`⚠️ CONSECUTIVE BENCH: ${candidate.name} was benched last inning`);
-                            }
-
-                            benchIndices.push(candidate.index);
-                            playerBenchCount[candidate.index]++;
-                            playerLastBenched[candidate.index] = inning;
-                            remainingSlots--;
-
-                            console.log(`⚠️ Fallback selected ${candidate.name} for bench`);
                         }
                     }
 
@@ -3962,7 +3931,7 @@
                     console.log(`📊 Inning ${inning} final bench: ${benchIndices.map(i => shuffledPlayers[i].name).join(', ')}`);
                     console.log(`📊 Bench count: ${benchIndices.length}/${playersToBenchPerInning}`);
 
-                    // Verify no consecutive bench
+                    // Check for consecutive bench (informational only)
                     if (inning > 1) {
                         const prevBench = benchSchedule[inning - 2];
                         const consecutivePlayers = [];
@@ -3974,13 +3943,13 @@
                         }
 
                         if (consecutivePlayers.length > 0) {
-                            console.warn(`⚠️ CONSECUTIVE BENCH in inning ${inning}: ${consecutivePlayers.join(', ')}`);
+                            console.log(`📊 Consecutive bench in inning ${inning}: ${consecutivePlayers.join(', ')} (${consecutivePlayers.length}/${playersToBenchPerInning})`);
                         } else {
                             console.log(`✅ No consecutive bench in inning ${inning}`);
                         }
                     }
                     
-                    // Special validation for first 4 innings: exactly one player should sit twice
+                    // Track bench distribution
                     if (inning <= 4) {
                         let playersBenchedTwice = 0;
                         let playersBenchedOnce = 0;
@@ -3997,24 +3966,6 @@
                         }
                         
                         console.log(`📊 First ${inning} innings summary: ${playersBenchedTwice} benched twice, ${playersBenchedOnce} benched once, ${playersNotBenched} not benched`);
-                        
-                        if (inning === 4) {
-                            if (numPlayers === 13) {
-                                // 13 players: 1 benched twice, 11 benched once, 1 not benched
-                                if (playersBenchedTwice === 1 && playersBenchedOnce === 11 && playersNotBenched === 1) {
-                                    console.log(`✅ PERFECT: Exactly one player benched twice in first 4 innings`);
-                                } else {
-                                    console.error(`❌ FIRST 4 INNINGS VIOLATION: Expected 1 player benched twice, 11 benched once, 1 not benched. Got: ${playersBenchedTwice} twice, ${playersBenchedOnce} once, ${playersNotBenched} not benched`);
-                                }
-                            } else if (numPlayers === 12) {
-                                // 12 players: 0 benched twice, 12 benched once, 0 not benched
-                                if (playersBenchedTwice === 0 && playersBenchedOnce === 12 && playersNotBenched === 0) {
-                                    console.log(`✅ PERFECT: All 12 players benched exactly once in first 4 innings`);
-                                } else {
-                                    console.error(`❌ FIRST 4 INNINGS VIOLATION: Expected 0 benched twice, 12 benched once, 0 not benched. Got: ${playersBenchedTwice} twice, ${playersBenchedOnce} once, ${playersNotBenched} not benched`);
-                                }
-                            }
-                        }
                     }
                 }
             }
