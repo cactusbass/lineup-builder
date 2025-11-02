@@ -5275,6 +5275,7 @@
             // Do NOT use any cumulative stats - only count from savedInnings
             const playerUsage = {}; // Track total innings played
             const benchUsage = {}; // Track bench innings
+            const benchUsageFirstFour = {}; // Track bench innings in first 4 innings only
             const infieldUsage = {}; // Track infield innings
             const outfieldUsage = {}; // Track outfield innings
             
@@ -5282,6 +5283,7 @@
             availablePlayers.forEach(player => {
                 playerUsage[player.id] = 0;
                 benchUsage[player.id] = 0;
+                benchUsageFirstFour[player.id] = 0;
                 infieldUsage[player.id] = 0;
                 outfieldUsage[player.id] = 0;
             });
@@ -5339,6 +5341,10 @@
                 availablePlayers.forEach(player => {
                     if (!playingInInning.has(player.id)) {
                         benchUsage[player.id] = (benchUsage[player.id] || 0) + 1;
+                        // Track bench time for first 4 innings specifically
+                        if (index < 4) { // First 4 innings (0-indexed: 0, 1, 2, 3)
+                            benchUsageFirstFour[player.id] = (benchUsageFirstFour[player.id] || 0) + 1;
+                        }
                     }
                 });
             });
@@ -5351,6 +5357,7 @@
                     name: p.name,
                     playing: playerUsage[p.id] || 0,
                     bench: benchUsage[p.id] || 0,
+                    benchFirstFour: benchUsageFirstFour[p.id] || 0,
                     infield: infieldUsage[p.id] || 0,
                     outfield: outfieldUsage[p.id] || 0
                 }))
@@ -5451,6 +5458,7 @@
             availablePlayers.forEach(player => {
                 const actualInningsPlayed = playerUsage[player.id] || 0;
                 const actualBenchTime = benchUsage[player.id] || 0;
+                const benchTimeFirstFour = benchUsageFirstFour[player.id] || 0;
                 const totalInnings = actualInningsPlayed + actualBenchTime;
                 const expectedTotal = innings;
                 
@@ -5458,13 +5466,23 @@
                 const outfieldBalance = Math.abs((outfieldUsage[player.id] || 0) - targetOutfieldPerPlayer);
                 const isBalanced = infieldBalance <= 1 && outfieldBalance <= 1;
                 const isComplete = totalInnings === expectedTotal;
+                const benchedTooMuchInFirstFour = benchTimeFirstFour >= 2; // Red flag if benched 2+ times in first 4 innings
+                
+                // Determine background color - red if benched too much in first 4 innings
+                let backgroundColor = '#f0f9ff'; // Default blue
+                if (benchedTooMuchInFirstFour) {
+                    backgroundColor = '#fee2e2'; // Red background for players benched 2+ times in first 4
+                } else if (!isComplete || !isBalanced) {
+                    backgroundColor = '#fef2f2'; // Light red for other issues
+                }
                 
                 html += `
-                    <div style="font-size: 0.9rem; padding: 8px; border-radius: 4px; background: ${isComplete && isBalanced ? '#f0f9ff' : '#fef2f2'};">
+                    <div style="font-size: 0.9rem; padding: 8px; border-radius: 4px; background: ${backgroundColor}; ${benchedTooMuchInFirstFour ? 'border: 2px solid #dc2626;' : ''}">
                         <strong>${player.name}:</strong> ${actualInningsPlayed} playing, ${actualBenchTime} bench
                         <br><small>(Infield: ${infieldUsage[player.id] || 0}/${targetInfieldPerPlayer}, Outfield: ${outfieldUsage[player.id] || 0}/${targetOutfieldPerPlayer})</small>
-                        ${!isBalanced ? '<br><small style="color: #dc2626;">⚠️ Unbalanced!</small>' : ''}
-                        ${!isComplete ? '<br><small style="color: #dc2626;">⚠️ Missing innings!</small>' : ''}
+                        ${benchedTooMuchInFirstFour ? `<br><small style="color: #dc2626; font-weight: bold;">⚠️ Benched ${benchTimeFirstFour} times in first 4 innings!</small>` : ''}
+                        ${!isBalanced && !benchedTooMuchInFirstFour ? '<br><small style="color: #dc2626;">⚠️ Unbalanced!</small>' : ''}
+                        ${!isComplete && !benchedTooMuchInFirstFour ? '<br><small style="color: #dc2626;">⚠️ Missing innings!</small>' : ''}
                     </div>
                 `;
             });
