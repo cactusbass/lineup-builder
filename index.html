@@ -5271,6 +5271,58 @@
             const availablePlayers = players.filter(p => availablePlayerIds.includes(p.id));
             const playerNames = availablePlayers.map(p => p.name).sort();
             
+            // Calculate stats from the lineup
+            const playerUsage = {}; // Track total innings played
+            const benchUsage = {}; // Track bench innings
+            const infieldUsage = {}; // Track infield innings
+            const outfieldUsage = {}; // Track outfield innings
+            
+            // Initialize all players
+            availablePlayers.forEach(player => {
+                playerUsage[player.id] = 0;
+                benchUsage[player.id] = 0;
+                infieldUsage[player.id] = 0;
+                outfieldUsage[player.id] = 0;
+            });
+            
+            // Calculate stats from saved lineup
+            const infieldPositions = ['P', 'C', '1B', '2B', 'SS', '3B'];
+            const outfieldPositions = ['LF', 'CF', 'RF'];
+            const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
+            
+            savedInnings.forEach((inning, index) => {
+                // Track who's playing in this inning
+                const playingInInning = new Set();
+                positions.forEach(pos => {
+                    if (inning[pos]) {
+                        const player = availablePlayers.find(p => p.name === inning[pos]);
+                        if (player) {
+                            playingInInning.add(player.id);
+                            playerUsage[player.id]++;
+                            
+                            // Track position-specific usage
+                            if (infieldPositions.includes(pos)) {
+                                infieldUsage[player.id]++;
+                            } else if (outfieldPositions.includes(pos)) {
+                                outfieldUsage[player.id]++;
+                            }
+                        }
+                    }
+                });
+                
+                // Calculate bench players (players not playing)
+                availablePlayers.forEach(player => {
+                    if (!playingInInning.has(player.id)) {
+                        benchUsage[player.id]++;
+                    }
+                });
+            });
+            
+            // Calculate targets
+            const numPlayers = availablePlayers.length;
+            const targetInfieldPerPlayer = numPlayers === 9 ? innings * 2 : Math.round((innings * 6 * 9) / numPlayers);
+            const targetOutfieldPerPlayer = numPlayers === 9 ? innings * 1 : Math.round((innings * 3 * 9) / numPlayers);
+            
             let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3>Kimner vs ${opponentName} - ${innings} Innings</h3>
                 <button onclick="toggleLineupEditMode()" class="btn" style="margin-left: auto;">
@@ -5289,8 +5341,18 @@
                 html += '<div class="lineup-section">';
                 html += '<h5>Fielding:</h5>';
                 
+                // Track who's playing in this inning
+                const playingInInning = new Set();
+                positions.forEach(pos => {
+                    if (inning[pos]) {
+                        const player = availablePlayers.find(p => p.name === inning[pos]);
+                        if (player) {
+                            playingInInning.add(player.id);
+                        }
+                    }
+                });
+                
                 // Display positions in the same order as the original
-                const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
                 positions.forEach(pos => {
                     const currentPlayer = inning[pos] || '';
                     if (isEditable) {
@@ -5313,8 +5375,62 @@
                 });
                 
                 html += '</div>';
+                
+                // Show bench if we have more than 9 players
+                if (numPlayers > 9) {
+                    const benchPlayersInInning = availablePlayers.filter(player => !playingInInning.has(player.id));
+                    if (benchPlayersInInning.length > 0) {
+                        html += '<div class="bench-section">';
+                        html += '<h5>Bench:</h5>';
+                        benchPlayersInInning.forEach(player => {
+                            html += `<div class="bench-player">${player.name}</div>`;
+                        });
+                        html += '</div>';
+                    }
+                }
+                
                 html += '</div>';
             });
+            
+            // Add usage statistics
+            html += `
+                <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                    <h4>Playing Time Summary:</h4>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 15px;">
+                        ${numPlayers === 9 ? 
+                            `Perfect setup: ${numPlayers} players, 9 positions, no bench time needed! Each player plays all ${innings} innings.` :
+                            `Setup: ${numPlayers} players, 9 positions, ${numPlayers - 9} players sit each inning.`
+                        }
+                        <br><strong>Target Balance:</strong> ${targetInfieldPerPlayer} infield (including P/C), ${targetOutfieldPerPlayer} outfield per player.
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+            `;
+            
+            availablePlayers.forEach(player => {
+                const actualInningsPlayed = playerUsage[player.id] || 0;
+                const actualBenchTime = benchUsage[player.id] || 0;
+                const totalInnings = actualInningsPlayed + actualBenchTime;
+                const expectedTotal = innings;
+                
+                const infieldBalance = Math.abs((infieldUsage[player.id] || 0) - targetInfieldPerPlayer);
+                const outfieldBalance = Math.abs((outfieldUsage[player.id] || 0) - targetOutfieldPerPlayer);
+                const isBalanced = infieldBalance <= 1 && outfieldBalance <= 1;
+                const isComplete = totalInnings === expectedTotal;
+                
+                html += `
+                    <div style="font-size: 0.9rem; padding: 8px; border-radius: 4px; background: ${isComplete && isBalanced ? '#f0f9ff' : '#fef2f2'};">
+                        <strong>${player.name}:</strong> ${actualInningsPlayed} playing, ${actualBenchTime} bench
+                        <br><small>(Infield: ${infieldUsage[player.id] || 0}/${targetInfieldPerPlayer}, Outfield: ${outfieldUsage[player.id] || 0}/${targetOutfieldPerPlayer})</small>
+                        ${!isBalanced ? '<br><small style="color: #dc2626;">⚠️ Unbalanced!</small>' : ''}
+                        ${!isComplete ? '<br><small style="color: #dc2626;">⚠️ Missing innings!</small>' : ''}
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
             
             return html;
         }
