@@ -5218,12 +5218,15 @@
             
             // No need to restore players array since we didn't modify it
             
-            // Update the lineup display in the game detail view
+            // Update the lineup display in the game detail view using editable display
             const lineupDisplay = document.getElementById('lineup-display');
             console.log('Lineup display element:', lineupDisplay);
             if (lineupDisplay) {
-                lineupDisplay.innerHTML = generatedLineup;
-                console.log('Updated lineup display');
+                // Use displaySavedLineup to show the lineup with edit capability
+                lineupEditMode = false; // Start in view mode
+                const lineupHTML = displaySavedLineup(game.generatedLineup.innings, game.availablePlayers, false);
+                lineupDisplay.innerHTML = lineupHTML;
+                console.log('Updated lineup display with editable interface');
             }
             
             // Show success message
@@ -5254,7 +5257,7 @@
             }
         }
         
-        function displaySavedLineup(savedInnings, availablePlayerIds) {
+        function displaySavedLineup(savedInnings, availablePlayerIds, isEditable = false) {
             if (!savedInnings || savedInnings.length === 0) {
                 return '<p style="color: #6b7280;">No lineup data found.</p>';
             }
@@ -5264,7 +5267,22 @@
             const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
             const innings = savedInnings.length;
             
-            let html = `<h3>Kimner vs ${opponentName} - ${innings} Innings</h3>`;
+            // Get available players for dropdowns
+            const availablePlayers = players.filter(p => availablePlayerIds.includes(p.id));
+            const playerNames = availablePlayers.map(p => p.name).sort();
+            
+            let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>Kimner vs ${opponentName} - ${innings} Innings</h3>
+                <button onclick="toggleLineupEditMode()" class="btn" style="margin-left: auto;">
+                    ${isEditable ? '📝 Exit Edit Mode' : '✏️ Edit Lineup'}
+                </button>
+            </div>`;
+            
+            if (isEditable) {
+                html += `<button onclick="saveEditedLineup()" class="btn" style="margin-bottom: 15px; background: #10b981; color: white;">
+                    💾 Save Changes
+                </button>`;
+            }
             
             savedInnings.forEach((inning, index) => {
                 html += `<div class="inning"><h4>Inning ${index + 1}</h4>`;
@@ -5274,8 +5292,23 @@
                 // Display positions in the same order as the original
                 const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
                 positions.forEach(pos => {
-                    if (inning[pos]) {
-                        html += `<div class="position-row"><span class="position">${pos}</span><span class="player">${inning[pos]}</span></div>`;
+                    const currentPlayer = inning[pos] || '';
+                    if (isEditable) {
+                        // Create editable dropdown
+                        html += `<div class="position-row" style="display: flex; align-items: center; gap: 10px;">
+                            <span class="position" style="min-width: 30px;">${pos}</span>
+                            <select class="player-select" data-inning="${index}" data-position="${pos}" style="flex: 1; padding: 5px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                <option value="">-- Select Player --</option>
+                                ${playerNames.map(name => `
+                                    <option value="${name}" ${name === currentPlayer ? 'selected' : ''}>${name}</option>
+                                `).join('')}
+                            </select>
+                        </div>`;
+                    } else {
+                        // Display as text
+                        if (inning[pos]) {
+                            html += `<div class="position-row"><span class="position">${pos}</span><span class="player">${inning[pos]}</span></div>`;
+                        }
                     }
                 });
                 
@@ -5284,6 +5317,62 @@
             });
             
             return html;
+        }
+        
+        let lineupEditMode = false;
+        
+        function toggleLineupEditMode() {
+            lineupEditMode = !lineupEditMode;
+            const game = games.find(g => g.id === currentGameDetail?.id);
+            if (game && game.generatedLineup) {
+                const lineupHTML = displaySavedLineup(game.generatedLineup.innings, game.availablePlayers, lineupEditMode);
+                const lineupDisplay = document.getElementById('lineup-display');
+                if (lineupDisplay) {
+                    lineupDisplay.innerHTML = lineupHTML;
+                }
+            }
+        }
+        
+        function saveEditedLineup() {
+            const game = games.find(g => g.id === currentGameDetail?.id);
+            if (!game || !game.generatedLineup) {
+                alert('No lineup found to save.');
+                return;
+            }
+            
+            // Get all select elements
+            const selects = document.querySelectorAll('.player-select');
+            const editedInnings = [...game.generatedLineup.innings]; // Copy array
+            
+            // Update each position from the selects
+            selects.forEach(select => {
+                const inningIndex = parseInt(select.getAttribute('data-inning'));
+                const position = select.getAttribute('data-position');
+                const selectedPlayer = select.value;
+                
+                if (inningIndex >= 0 && inningIndex < editedInnings.length) {
+                    if (selectedPlayer) {
+                        editedInnings[inningIndex][position] = selectedPlayer;
+                    } else {
+                        // Remove position if empty
+                        delete editedInnings[inningIndex][position];
+                    }
+                }
+            });
+            
+            // Update the game's lineup
+            game.generatedLineup.innings = editedInnings;
+            saveGames();
+            
+            // Refresh the display (exit edit mode)
+            lineupEditMode = false;
+            const lineupHTML = displaySavedLineup(editedInnings, game.availablePlayers, false);
+            const lineupDisplay = document.getElementById('lineup-display');
+            if (lineupDisplay) {
+                lineupDisplay.innerHTML = lineupHTML;
+            }
+            
+            alert('Lineup changes saved successfully!');
         }
         
         function clearSavedLineupNote() {
