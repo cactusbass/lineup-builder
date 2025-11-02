@@ -5467,7 +5467,7 @@
                 const actualInningsPlayed = playerUsage[player.id] || 0;
                 const actualBenchTime = benchUsage[player.id] || 0;
                 const benchTimeFirstFour = benchUsageFirstFour[player.id] || 0;
-                const playingTimeFirstFour = playingTimeFirstFour[player.id] || 0;
+                const playingTimeFirstFourCount = playingTimeFirstFour[player.id] || 0;
                 const totalInnings = actualInningsPlayed + actualBenchTime;
                 const expectedTotal = innings;
                 
@@ -5476,7 +5476,7 @@
                 const isBalanced = infieldBalance <= 1 && outfieldBalance <= 1;
                 const isComplete = totalInnings === expectedTotal;
                 const benchedTooMuchInFirstFour = benchTimeFirstFour >= 2; // Red flag if benched 2+ times in first 4 innings
-                const playingAllFirstFour = playingTimeFirstFour === 4; // Red flag if playing in all 4 of first innings
+                const playingAllFirstFour = playingTimeFirstFourCount === 4; // Red flag if playing in all 4 of first innings
                 
                 // Determine background color - prioritize bench issues, then playing too much
                 let backgroundColor = '#f0f9ff'; // Default blue
