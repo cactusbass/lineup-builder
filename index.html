@@ -5357,9 +5357,13 @@
             });
             
             // Calculate targets
+            // Infield positions: P, C, 1B, 2B, SS, 3B = 6 positions per inning
+            // Outfield positions: LF, CF, RF = 3 positions per inning
             const numPlayers = availablePlayers.length;
-            const targetInfieldPerPlayer = numPlayers === 9 ? innings * 2 : Math.round((innings * 6 * 9) / numPlayers);
-            const targetOutfieldPerPlayer = numPlayers === 9 ? innings * 1 : Math.round((innings * 3 * 9) / numPlayers);
+            const totalInfieldSlots = 6 * innings; // 6 infield positions per inning
+            const totalOutfieldSlots = 3 * innings; // 3 outfield positions per inning
+            const targetInfieldPerPlayer = Math.round(totalInfieldSlots / numPlayers);
+            const targetOutfieldPerPlayer = Math.round(totalOutfieldSlots / numPlayers);
             
             let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3>Kimner vs ${opponentName} - ${innings} Innings</h3>
