@@ -5267,17 +5267,18 @@
             const opponentName = game ? game.opponent : (currentGameDetail ? currentGameDetail.opponent : 'Opponent');
             const innings = savedInnings.length;
             
-            // Get available players for dropdowns
+            // Get available players for dropdowns - ONLY players from THIS game
             const availablePlayers = players.filter(p => availablePlayerIds.includes(p.id));
             const playerNames = availablePlayers.map(p => p.name).sort();
             
-            // Calculate stats from the lineup
+            // IMPORTANT: Reset and calculate stats ONLY from the saved lineup for THIS game
+            // Do NOT use any cumulative stats - only count from savedInnings
             const playerUsage = {}; // Track total innings played
             const benchUsage = {}; // Track bench innings
             const infieldUsage = {}; // Track infield innings
             const outfieldUsage = {}; // Track outfield innings
             
-            // Initialize all players
+            // Initialize all players to ZERO for THIS game only
             availablePlayers.forEach(player => {
                 playerUsage[player.id] = 0;
                 benchUsage[player.id] = 0;
@@ -5285,37 +5286,74 @@
                 outfieldUsage[player.id] = 0;
             });
             
-            // Calculate stats from saved lineup
+            // Calculate stats ONLY from the saved lineup data
             const infieldPositions = ['P', 'C', '1B', '2B', 'SS', '3B'];
             const outfieldPositions = ['LF', 'CF', 'RF'];
             const positions = ['P', 'C', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF'];
             
+            // Validate and calculate from saved innings ONLY
+            if (!Array.isArray(savedInnings)) {
+                console.error('savedInnings is not an array:', savedInnings);
+                return '<p style="color: #dc2626;">Error: Invalid lineup data.</p>';
+            }
+            
             savedInnings.forEach((inning, index) => {
-                // Track who's playing in this inning
+                // Make sure inning is an object
+                if (!inning || typeof inning !== 'object') {
+                    console.warn(`Invalid inning data at index ${index}:`, inning);
+                    return;
+                }
+                
+                // Track who's playing in this inning (for THIS game only)
                 const playingInInning = new Set();
+                const usedPlayerNames = new Set(); // Prevent duplicate player names in same inning
+                
                 positions.forEach(pos => {
-                    if (inning[pos]) {
-                        const player = availablePlayers.find(p => p.name === inning[pos]);
+                    const playerName = inning[pos];
+                    if (playerName && typeof playerName === 'string') {
+                        // Skip if we've already counted this player in this inning (duplicate check)
+                        if (usedPlayerNames.has(playerName)) {
+                            console.warn(`Duplicate player ${playerName} found in inning ${index + 1} at position ${pos}`);
+                            return;
+                        }
+                        
+                        const player = availablePlayers.find(p => p.name === playerName);
                         if (player) {
                             playingInInning.add(player.id);
-                            playerUsage[player.id]++;
+                            usedPlayerNames.add(playerName);
+                            playerUsage[player.id] = (playerUsage[player.id] || 0) + 1;
                             
-                            // Track position-specific usage
+                            // Track position-specific usage for THIS game only
                             if (infieldPositions.includes(pos)) {
-                                infieldUsage[player.id]++;
+                                infieldUsage[player.id] = (infieldUsage[player.id] || 0) + 1;
                             } else if (outfieldPositions.includes(pos)) {
-                                outfieldUsage[player.id]++;
+                                outfieldUsage[player.id] = (outfieldUsage[player.id] || 0) + 1;
                             }
+                        } else {
+                            console.warn(`Player "${playerName}" not found in available players for inning ${index + 1}, position ${pos}`);
                         }
                     }
                 });
                 
-                // Calculate bench players (players not playing)
+                // Calculate bench players (players not playing in THIS inning only)
                 availablePlayers.forEach(player => {
                     if (!playingInInning.has(player.id)) {
-                        benchUsage[player.id]++;
+                        benchUsage[player.id] = (benchUsage[player.id] || 0) + 1;
                     }
                 });
+            });
+            
+            // Debug: Log calculated stats for verification
+            console.log('Calculated stats from saved lineup:', {
+                innings: innings,
+                playerCount: availablePlayers.length,
+                stats: availablePlayers.map(p => ({
+                    name: p.name,
+                    playing: playerUsage[p.id] || 0,
+                    bench: benchUsage[p.id] || 0,
+                    infield: infieldUsage[p.id] || 0,
+                    outfield: outfieldUsage[p.id] || 0
+                }))
             });
             
             // Calculate targets
@@ -5458,37 +5496,53 @@
             
             // Get all select elements
             const selects = document.querySelectorAll('.player-select');
-            const editedInnings = [...game.generatedLineup.innings]; // Copy array
+            
+            // Deep copy the innings array to avoid modifying the original
+            const editedInnings = game.generatedLineup.innings.map(inning => {
+                return { ...inning }; // Create a new object for each inning
+            });
             
             // Update each position from the selects
             selects.forEach(select => {
                 const inningIndex = parseInt(select.getAttribute('data-inning'));
                 const position = select.getAttribute('data-position');
-                const selectedPlayer = select.value;
+                const selectedPlayer = select.value.trim(); // Trim whitespace
                 
                 if (inningIndex >= 0 && inningIndex < editedInnings.length) {
                     if (selectedPlayer) {
+                        // Create new object if needed
+                        if (!editedInnings[inningIndex]) {
+                            editedInnings[inningIndex] = {};
+                        }
                         editedInnings[inningIndex][position] = selectedPlayer;
                     } else {
                         // Remove position if empty
-                        delete editedInnings[inningIndex][position];
+                        if (editedInnings[inningIndex]) {
+                            delete editedInnings[inningIndex][position];
+                        }
                     }
                 }
             });
             
-            // Update the game's lineup
+            // Log the edited lineup for debugging
+            console.log('Saving edited lineup:', editedInnings);
+            
+            // Update the game's lineup with the edited innings
             game.generatedLineup.innings = editedInnings;
+            game.generatedLineup.timestamp = new Date().toISOString(); // Update timestamp
             saveGames();
             
-            // Refresh the display (exit edit mode)
+            console.log('Game lineup after save:', game.generatedLineup.innings);
+            
+            // Refresh the display (exit edit mode) using the saved lineup
             lineupEditMode = false;
-            const lineupHTML = displaySavedLineup(editedInnings, game.availablePlayers, false);
+            const lineupHTML = displaySavedLineup(game.generatedLineup.innings, game.availablePlayers, false);
             const lineupDisplay = document.getElementById('lineup-display');
             if (lineupDisplay) {
                 lineupDisplay.innerHTML = lineupHTML;
             }
             
-            alert('Lineup changes saved successfully!');
+            alert('Lineup changes saved successfully! Stats have been recalculated.');
         }
         
         function clearSavedLineupNote() {
